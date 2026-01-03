@@ -1,0 +1,158 @@
+/* Import font */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Full screen background */
+body,
+html {
+  height: 100%;
+  width: 100%;
+}
+
+/* Background image with blur */
+.background {
+  background: url('signup_page.jpeg') no-repeat center center/cover;
+  filter: blur(6px);
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+}
+
+/* Glassmorphism card */
+.signup-container {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  color: #fff;
+}
+
+/* Navigation links */
+.nav-links {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.nav-link {
+  color: #01de1a;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  background: rgba(0, 229, 255, 0.2);
+  text-decoration: none;
+}
+
+/* Inputs */
+/* Inputs and Select */
+.signup-form input,
+.signup-form select {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin: 12px 0;
+  border: 2px solid #3f4646;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+/* Ensure options have dark text for readability on standard dropdowns */
+.signup-form select option {
+  color: #000;
+  background: #fff;
+}
+
+.signup-form input::placeholder {
+  color: #cfcfcf;
+}
+
+/* Button */
+.signup-form button {
+  margin-top: 10px;
+  padding: 12px;
+  width: 120px;
+  border: none;
+  border-radius: 25px;
+  background: #01de1a;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.signup-form button:hover {
+  background: #01de1a;
+}
+
+/* Role Navbar Styles */
+.role-navbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 25px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.role-item {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.role-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.role-item.active {
+  background: #01de1a;
+  color: #000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Footer link */
+.signup-container p {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #ddd;
+}
+
+.signup-container a {
+  color: #01de1a;
+  text-decoration: none;
+}
+
+.signup-container a:hover {
+  text-decoration: underline;
+}

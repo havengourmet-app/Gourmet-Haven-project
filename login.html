@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="login-style.css">
+  <link rel="stylesheet" href="global.css"> <!-- Assuming global styles -->
+</head>
+<body>
+  <!-- Background -->
+  <div class="background"></div>
+
+  <!-- Login Card -->
+  <div class="login-container">
+    <!-- Navigation Links -->
+    <div class="nav-links">
+      <a href="index.html" class="nav-link"><strong>← Landing Page</strong></a>
+      <!-- <a href="ray.html" class="nav-link">Chat with Ray →</a> -->
+    </div>
+
+    <!-- Login Form -->
+    <form class="login-form" id="loginForm"> <!-- Removed inline onsubmit -->
+      <h2>Login</h2>
+      <!-- Add id attributes -->
+      <input type="email" id="email" placeholder="Enter your email" required>
+      <input type="password" id="password" placeholder="Enter Password" required>
+
+      <!-- Error Message Paragraph -->
+      <p id="error-message" class="error-message" style="display: none;"></p>
+
+      <p><a href="#" class="forgot-password"><strong>Forgot password ?</strong></a></p>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+  </div>
+
+  <!-- Link the JavaScript file -->
+  <script src="login.js"></script>
+</body>
+</html>
