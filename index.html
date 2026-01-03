@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gourmet Haven - Taste the Future</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="landing-style.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar" id="navbar">
+        <div class="logo">Gourmet Haven</div>
+        <div class="nav-links">
+            <a href="#hero" class="active">Home</a>
+            <a href="#features">Features</a>
+            <a href="#showcase">Menu</a>
+            <a href="login.html" class="btn-login">Login</a>
+            <a href="signup.html" class="btn-signup">Sign Up</a>
+        </div>
+        <div class="menu-toggle" id="mobile-menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="hero">
+        <!-- Video Background -->
+        <div class="video-container">
+            <video autoplay muted loop playsinline id="hero-video">
+                <source src="food_video.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div class="overlay"></div>
+        </div>
+
+        <!-- Hero Content -->
+        <div class="hero-content">
+            <h1 class="main-title fade-in-up">Experience the <span class="highlight">Future</span> of Dining</h1>
+            <p class="subtitle fade-in-up delay-1">Fresh ingredients, expert chefs, delivered to your doorstep in
+                minutes.</p>
+            <div class="cta-buttons fade-in-up delay-2">
+                <a href="signup.html" class="btn btn-primary">Order Now</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <h2 class="section-title scroll-animate">Why Choose Us?</h2>
+
+        <div class="feature-cards">
+            <!-- Feature 1 -->
+            <div class="card scroll-animate delay-1">
+                <div class="card-image">
+                    <img src="food_item1.jpeg" alt="Fresh Ingredients">
+                </div>
+                <div class="card-content">
+                    <h3>Farm Fresh</h3>
+                    <p>We source our ingredients directly from local organic farms to ensure maximum freshness and
+                        taste.</p>
+                </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="card scroll-animate delay-2">
+                <div class="card-image">
+                    <img src="food_item2.jpeg" alt="Expert Chefs">
+                </div>
+                <div class="card-content">
+                    <h3>World-Class Chefs</h3>
+                    <p>Our culinary team brings years of experience from top restaurants around the globe.</p>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="card scroll-animate delay-3">
+                <div class="card-image">
+                    <img src="food_item3.jpeg" alt="Fast Delivery">
+                </div>
+                <div class="card-content">
+                    <h3>Lightning Fast</h3>
+                    <p>Hot and fresh food delivered to your door in under 30 minutes, guaranteed.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Text / Showcase Section -->
+    <section class="showcase" id="showcase">
+        <div class="showcase-text scroll-animate">
+            <h2>A Culinary Journey</h2>
+            <p>At Gourmet Haven, we believe food is more than just sustenance. It's an art form, a comfort, and a way to
+                bring people together. Our platform connects you with the finest flavors, curated specially for your
+                palate.</p>
+            <a href="signup.html" class="btn btn-primary mt-20">Explore Menu</a>
+        </div>
+        <div class="showcase-image scroll-animate delay-1">
+            <img src="food.jpeg" alt="Showcase Dish">
+            <!-- Fallback to existing image if user didn't provide specific showcase -->
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <h3>Gourmet Haven</h3>
+            <p>Taste the perfection.</p>
+            <ul class="socials">
+                <li><a href="#">Facebook</a></li>
+                <li><a href="#">Twitter</a></li>
+                <li><a href="#">Instagram</a></li>
+            </ul>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Gourmet Haven. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="landing.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- External CSS -->
+  <link rel="stylesheet" href="signup-style.css">
+  <style>
+    /* Add this style to your signup-style.css or keep it here */
+    .error-message {
+      color: #e57373;
+      /* A soft red color */
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+      text-align: center;
+      display: none;
+      /* Hidden by default */
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Background -->
+  <div class="background"></div>
+
+  <!-- Sign Up Card -->
+  <div class="signup-container">
+    <!-- Navigation Links -->
+    <div class="nav-links">
+      <!-- <a href="index.html" class="nav-link">← Home</a> -->
+      <!-- <a href="ray.html" class="nav-link">Chat with Ray →</a> -->
+    </div>
+
+    <!-- We now give the form an ID -->
+    <form class="signup-form" id="signup-form">
+      <!-- Added IDs to all inputs -->
+      <!-- Dropdown for Role -->
+      <!-- <select id="role" required>
+        <option value="" disabled selected>Select your role</option>
+        <option value="delivery_partner">Delivery Partner</option>
+        <option value="user">User</option>
+        <option value="owner">Owner</option>
+      </select> -->
+
+      <!-- Role Selection Navbar -->
+      <div class="role-navbar">
+        <div class="role-item active" data-value="user">User</div>
+        <div class="role-item" data-value="delivery_partner">Delivery Partner</div>
+        <div class="role-item" data-value="owner">Owner</div>
+      </div>
+      <input type="hidden" id="role" name="role" value="user">
+
+      <input type="email" id="email" placeholder="Enter your email" required>
+      <input type="text" id="username" placeholder="Enter Username" required>
+      <input type="password" id="password" placeholder="Enter Password" required>
+      <input type="password" id="confirm-password" placeholder="Confirm Password" required>
+
+      <!-- New: Error message container -->
+      <p id="error-message" class="error-message"></p>
+
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <p>Already have an account? <a href="login.html">Login</a></p>
+  </div>
+
+  <!-- 
+    We removed the old inline <script> tag.
+    We now link to our new external JavaScript file.
+    'defer' tells the browser to wait until the HTML is loaded.
+  -->
+  <script src="signup.js" defer></script>
+</body>
+
+</html>
