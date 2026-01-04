@@ -43,6 +43,7 @@ body {
     white-space: nowrap;
 }
 
+/* Location Selector with Dropdown */
 .location {
     display: flex;
     align-items: center;
@@ -50,6 +51,15 @@ body {
     color: #666;
     font-size: 0.9rem;
     white-space: nowrap;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+    position: relative;
+}
+
+.location:hover {
+    background: #f8f9fa;
 }
 
 .icon {
@@ -62,6 +72,75 @@ body {
 #user-location {
     font-weight: 500;
     color: #1a1a1a;
+}
+
+.dropdown-arrow {
+    color: #666;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.location.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Location Dropdown */
+.location-dropdown {
+    position: absolute;
+    top: 45px;
+    left: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1002;
+}
+
+.location-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.location-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+}
+
+.location-item:first-child {
+    border-radius: 12px 12px 0 0;
+}
+
+.location-item:last-child {
+    border-radius: 0 0 12px 12px;
+}
+
+.location-item:hover {
+    background: #f8f9fa;
+}
+
+.location-item.active {
+    background: #e8f9eb;
+    color: #01de1a;
+}
+
+.location-item svg {
+    width: 16px;
+    height: 16px;
+    color: #666;
+    flex-shrink: 0;
 }
 
 /* Search Container */
@@ -81,6 +160,7 @@ body {
     width: 20px;
     height: 20px;
     pointer-events: none;
+    z-index: 2;
 }
 
 #search-input {
@@ -101,6 +181,77 @@ body {
 }
 
 #search-input::placeholder {
+    color: #999;
+}
+
+/* Search Results Dropdown */
+.search-results {
+    position: absolute;
+    top: 55px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 400px;
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+.search-results.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.search-results-section {
+    padding: 15px 0;
+}
+
+.search-results-section:not(:last-child) {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.search-results-section h4 {
+    padding: 0 20px 10px;
+    font-size: 0.85rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: #f8f9fa;
+}
+
+.search-result-icon {
+    width: 16px;
+    height: 16px;
+    color: #01de1a;
+    flex-shrink: 0;
+}
+
+.search-result-text {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+}
+
+.search-result-meta {
+    font-size: 0.8rem;
     color: #999;
 }
 
@@ -157,7 +308,7 @@ body {
     transform: rotate(180deg);
 }
 
-/* Dropdown Menu - IMPORTANT: Hidden by default */
+/* Dropdown Menu */
 .dropdown-menu {
     position: absolute;
     top: 60px;
@@ -190,7 +341,7 @@ body {
     font-size: 0.95rem;
 }
 
-.dropdown-item i {
+.dropdown-item svg {
     width: 18px;
     height: 18px;
     color: #666;
@@ -219,7 +370,7 @@ body {
     color: #e74c3c;
 }
 
-#logout-btn i {
+#logout-btn svg {
     color: #e74c3c;
 }
 
@@ -357,7 +508,8 @@ body {
 .brand-logo img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    padding: 10px;
 }
 
 .brand-card h3 {
@@ -449,6 +601,7 @@ body {
     gap: 8px;
     font-size: 0.85rem;
     color: #666;
+    margin-bottom: 15px;
 }
 
 .rating {
@@ -458,6 +611,26 @@ body {
 
 .dot {
     color: #ccc;
+}
+
+/* View Menu Button */
+.view-menu-btn {
+    width: 100%;
+    padding: 10px;
+    background: #01de1a;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-menu-btn:hover {
+    background: #00ff1e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(1, 222, 26, 0.3);
 }
 
 /* Responsive Design */
@@ -531,6 +704,7 @@ body {
 
     .location {
         font-size: 0.8rem;
+        padding: 6px 8px;
     }
 
     #user-name {
