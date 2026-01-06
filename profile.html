@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Gourmet Haven</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="landing-style.css"> <!-- Reusing global styles if any -->
+    <link rel="stylesheet" href="profile-style.css">
+</head>
+
+<body>
+
+    <!-- Background -->
+    <div class="background-overlay"></div>
+
+    <!-- Main Container -->
+    <div class="profile-container">
+
+        <!-- Left Sidebar -->
+        <aside class="sidebar glass-panel">
+            <!-- User Header -->
+            <div class="user-header">
+                <div class="avatar-container">
+                    <img src="kartikeya.png" alt="User Avatar"
+                        class="avatar">
+                    <div class="edit-avatar-icon">✎</div>
+                </div>
+                <h2 class="user-name">Rowdy Janardhana</h2>
+                <p class="member-since">Member since 2024</p>
+            </div>
+
+            <!-- Nav Menu -->
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active" data-tab="overview">Overview</li>
+                    <li class="nav-item" data-tab="orders">My Orders</li>
+                    <li class="nav-item" data-tab="address-book">Address Book</li>
+                    <li class="nav-item" data-tab="settings">Settings</li>
+                </ul>
+            </nav>
+
+            <!-- Logout -->
+            <div class="logout-section">
+                <button class="btn-logout" id="logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Right Content Area -->
+        <main class="content-area glass-panel">
+
+            <!-- Tab: Overview -->
+            <section id="overview" class="tab-content active">
+                <h2 class="section-title">Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Orders</h3>
+                        <p class="stat-value">24</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Points Earned</h3>
+                        <p class="stat-value">1,250</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Favorite Cuisine</h3>
+                        <p class="stat-value">Italian</p>
+                    </div>
+                </div>
+
+                <h3 class="subsection-title">Recent Activity</h3>
+                <p class="activity-text">You ordered <strong>Spicy Chicken Wings</strong> from <em>KFC</em> yesterday.
+                </p>
+            </section>
+
+            <!-- Tab: My Orders -->
+            <section id="orders" class="tab-content">
+                <h2 class="section-title">My Orders</h2>
+                <div class="orders-list">
+                    <!-- Order Item 1 -->
+                    <div class="order-card">
+                        <div class="order-info">
+                            <h4>Paradise Biryani</h4>
+                            <p class="order-date">Jan 02, 2026</p>
+                        </div>
+                        <div class="order-details">
+                            <span class="order-price">$15.50</span>
+                            <span class="status-badge status-delivered">Delivered</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Item 2 -->
+                    <div class="order-card">
+                        <div class="order-info">
+                            <h4>Dominos Pizza</h4>
+                            <p class="order-date">Jan 05, 2026</p>
+                        </div>
+                        <div class="order-details">
+                            <span class="order-price">$22.00</span>
+                            <span class="status-badge status-inprogress">In-Progress</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Item 3 -->
+                    <div class="order-card">
+                        <div class="order-info">
+                            <h4>Burger King</h4>
+                            <p class="order-date">Dec 28, 2025</p>
+                        </div>
+                        <div class="order-details">
+                            <span class="order-price">$12.99</span>
+                            <span class="status-badge status-delivered">Delivered</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Address Book -->
+            <section id="address-book" class="tab-content">
+                <h2 class="section-title">Address Book</h2>
+                <div class="address-list">
+                    <div class="address-card">
+                        <div class="address-header">
+                            <h4>Home</h4>
+                            <span class="badge-default">Default</span>
+                        </div>
+                        <p>123 Gourmet Street, Foodie City, FC 500081</p>
+                        <div class="address-actions">
+                            <button class="btn-text">Edit</button>
+                            <button class="btn-text delete">Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="address-card">
+                        <div class="address-header">
+                            <h4>Work</h4>
+                        </div>
+                        <p>456 Tech Park, Developer Lane, FC 500082</p>
+                        <div class="address-actions">
+                            <button class="btn-text">Edit</button>
+                            <button class="btn-text delete">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-add-new">+ Add New Address</button>
+            </section>
+
+            <!-- Tab: Settings -->
+            <section id="settings" class="tab-content">
+                <div class="settings-header">
+                    <h2 class="section-title">Settings</h2>
+                    <button id="toggle-edit-btn" class="btn-edit">Edit Profile</button>
+                </div>
+
+                <form id="profile-form">
+                    <div class="form-group">
+                        <label for="full-name">Full Name</label>
+                        <input type="text" id="full-name" value="Rowdy Janardhana" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" value="rowdy@example.com" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" value="9876543210" readonly>
+                        <small class="error-msg" id="phone-error">Please enter a valid 10-digit number.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="delivery-address">Default Delivery Address</label>
+                        <input type="text" id="delivery-address" value="123 Gourmet Street, Foodie City" readonly>
+                    </div>
+                </form>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Profile Updated Successfully!</div>
+
+    <script src="profile.js"></script>
+</body>
+
+</html>
