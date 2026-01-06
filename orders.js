@@ -226,7 +226,7 @@ function updateCart() {
         cartItemEl.innerHTML = `
             <div class="cart-item-header">
                 <h4 class="cart-item-name">${item.name} - ${item.variant}</h4>
-                <span class="cart-item-price">$${itemTotal.toFixed(2)}</span>
+                <span class="cart-item-price">₹${itemTotal.toFixed(2)}</span>
                 <button class="remove-item-btn" onclick="removeFromCart('${item.id}')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
