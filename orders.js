@@ -205,8 +205,8 @@ function updateCart() {
             </div>
         `;
 
-        if (subtotal) subtotal.textContent = '$0.00';
-        if (total) total.textContent = '$0.00';
+        if (subtotal) subtotal.textContent = '₹0.00';
+        if (total) total.textContent = '₹0.00';
         if (placeOrderBtn) placeOrderBtn.disabled = true;
         return;
     }
@@ -246,8 +246,8 @@ function updateCart() {
     });
 
     // Update totals
-    if (subtotal) subtotal.textContent = `$${subtotalAmount.toFixed(2)}`;
-    if (total) total.textContent = `$${subtotalAmount.toFixed(2)}`;
+    if (subtotal) subtotal.textContent = `₹${subtotalAmount.toFixed(2)}`;
+    if (total) total.textContent = `₹${subtotalAmount.toFixed(2)}`;
 
     // Enable/disable order button based on minimum order
     const minOrder = 20.00;
@@ -273,7 +273,7 @@ function placeOrder() {
     const minOrder = 20.00;
 
     if (subtotalAmount < minOrder) {
-        showNotification(`Minimum order amount is $${minOrder.toFixed(2)}`, 'error');
+        showNotification(`Minimum order amount is ₹${minOrder.toFixed(2)}`, 'error');
         return;
     }
 
@@ -289,7 +289,7 @@ function placeOrder() {
     console.log('Order placed:', orderSummary);
 
     // Show confirmation
-    const confirmed = confirm(`Place order for $${subtotalAmount.toFixed(2)}?`);
+    const confirmed = confirm(`Place order for ₹${subtotalAmount.toFixed(2)}?`);
 
     if (confirmed) {
         // --- Order Sync Logic ---
