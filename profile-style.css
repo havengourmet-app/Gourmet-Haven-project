@@ -35,13 +35,19 @@ body {
 }
 
 /* Main Container */
+/* Main Container */
 .profile-container {
     display: flex;
     width: 90%;
     max-width: 1200px;
-    height: 85vh;
+    min-height: 85vh;
+    /* Changed from height to min-height */
+    height: auto;
+    /* Allow it to grow */
     gap: 20px;
     margin-top: 20px;
+    margin-bottom: 40px;
+    /* Add margin at bottom for scroll breathing room */
 }
 
 /* Glass Panel Utility */
@@ -62,6 +68,12 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
+    /* Maintain relative for absolute children if any */
+    height: auto;
+    /* Let it grow with content */
+    min-height: 500px;
+    /* Ensure a reasonable minimum size */
 }
 
 .user-header {

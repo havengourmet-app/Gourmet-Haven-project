@@ -39,7 +39,7 @@ function initializeLocationDropdown() {
         e.stopPropagation();
         locationDropdown.classList.toggle('show');
         locationSelector.classList.toggle('active');
-        
+
         const userDropdown = document.getElementById('dropdown-menu');
         if (userDropdown) userDropdown.classList.remove('show');
     });
@@ -48,15 +48,15 @@ function initializeLocationDropdown() {
         item.addEventListener('click', (e) => {
             e.stopPropagation();
             const selectedCity = item.getAttribute('data-city');
-            
+
             userLocation.textContent = selectedCity;
-            
+
             locationItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-            
+
             locationDropdown.classList.remove('show');
             locationSelector.classList.remove('active');
-            
+
             console.log('Location changed to:', selectedCity);
         });
     });
@@ -79,7 +79,7 @@ function initializeDropdown() {
     userProfile.addEventListener('click', (e) => {
         e.stopPropagation();
         dropdownMenu.classList.toggle('show');
-        
+
         const locationDropdown = document.getElementById('location-dropdown');
         const locationSelector = document.getElementById('location-selector');
         if (locationDropdown) locationDropdown.classList.remove('show');
@@ -100,7 +100,7 @@ function initializeDropdown() {
 // Initialize logout functionality
 function initializeLogout() {
     const logoutBtn = document.getElementById('logout-btn');
-    
+
     if (!logoutBtn) return;
 
     logoutBtn.addEventListener('click', (e) => {
@@ -112,12 +112,12 @@ function initializeLogout() {
 // Handle logout
 function handleLogout() {
     const confirmed = confirm('Are you sure you want to logout?');
-    
+
     if (!confirmed) return;
 
     document.body.style.transition = 'opacity 0.3s ease';
     document.body.style.opacity = '0';
-    
+
     setTimeout(() => {
         window.location.href = 'login.html';
     }, 300);
@@ -137,7 +137,7 @@ function addToCart(itemId, itemName, price, image) {
             variant: 'Full'
         };
     }
-    
+
     updateCart();
     showNotification(`${itemName} added to cart!`);
 }
@@ -179,20 +179,20 @@ function updateCart() {
     const subtotal = document.getElementById('subtotal');
     const total = document.getElementById('total');
     const placeOrderBtn = document.querySelector('.place-order-btn');
-    
+
     if (!cartItemsContainer) return;
-    
+
     const cartItems = Object.values(cart);
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    
+
     // Update cart count
     if (cartCount) {
         cartCount.textContent = `${itemCount} ITEM${itemCount !== 1 ? 'S' : ''}`;
     }
-    
+
     // Clear cart items
     cartItemsContainer.innerHTML = '';
-    
+
     if (cartItems.length === 0) {
         cartItemsContainer.innerHTML = `
             <div class="empty-cart">
@@ -204,25 +204,25 @@ function updateCart() {
                 <p>Your cart is empty</p>
             </div>
         `;
-        
+
         if (subtotal) subtotal.textContent = '$0.00';
         if (total) total.textContent = '$0.00';
         if (placeOrderBtn) placeOrderBtn.disabled = true;
         return;
     }
-    
+
     // Calculate totals
     let subtotalAmount = 0;
-    
+
     // Add cart items
     cartItems.forEach(item => {
         const itemTotal = item.price * item.quantity;
         subtotalAmount += itemTotal;
-        
+
         const cartItemEl = document.createElement('div');
         cartItemEl.className = 'cart-item';
         cartItemEl.setAttribute('data-cart-id', item.id);
-        
+
         cartItemEl.innerHTML = `
             <div class="cart-item-header">
                 <h4 class="cart-item-name">${item.name} - ${item.variant}</h4>
@@ -241,14 +241,14 @@ function updateCart() {
                 <button class="qty-btn" onclick="incrementQty('${item.id}')">+</button>
             </div>
         `;
-        
+
         cartItemsContainer.appendChild(cartItemEl);
     });
-    
+
     // Update totals
     if (subtotal) subtotal.textContent = `$${subtotalAmount.toFixed(2)}`;
     if (total) total.textContent = `$${subtotalAmount.toFixed(2)}`;
-    
+
     // Enable/disable order button based on minimum order
     const minOrder = 20.00;
     if (placeOrderBtn) {
@@ -263,20 +263,20 @@ function updateCart() {
 // Place order
 function placeOrder() {
     const cartItems = Object.values(cart);
-    
+
     if (cartItems.length === 0) {
         showNotification('Your cart is empty!', 'error');
         return;
     }
-    
+
     const subtotalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const minOrder = 20.00;
-    
+
     if (subtotalAmount < minOrder) {
         showNotification(`Minimum order amount is $${minOrder.toFixed(2)}`, 'error');
         return;
     }
-    
+
     // Create order summary
     const orderSummary = {
         items: cartItems,
@@ -285,21 +285,37 @@ function placeOrder() {
         orderDate: new Date().toISOString(),
         location: document.getElementById('user-location').textContent
     };
-    
+
     console.log('Order placed:', orderSummary);
-    
+
     // Show confirmation
     const confirmed = confirm(`Place order for $${subtotalAmount.toFixed(2)}?`);
-    
+
     if (confirmed) {
+        // --- Order Sync Logic ---
+        const newOrder = {
+            id: 'ORD-' + Date.now(),
+            restaurant: 'Gourmet Haven', // Defaulting to platform name for now, or could use first item's category
+            items: orderSummary.items,
+            total: orderSummary.total,
+            date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }),
+            status: 'Order Placed',
+            statusClass: 'status-inprogress' // css class for badge
+        };
+
+        const existingOrders = JSON.parse(localStorage.getItem('gourmet_orders') || '[]');
+        existingOrders.push(newOrder); // Add to end, will reverse on display
+        localStorage.setItem('gourmet_orders', JSON.stringify(existingOrders));
+        // ------------------------
+
         showNotification('Order placed successfully!', 'success');
-        
+
         // Clear cart after 2 seconds
         setTimeout(() => {
             cart = {};
             updateCart();
         }, 2000);
-        
+
         // In a real app, you would send this to the server
         // fetch('/api/orders', {
         //     method: 'POST',
@@ -316,11 +332,11 @@ function showNotification(message, type = 'success') {
     if (existingNotification) {
         existingNotification.remove();
     }
-    
+
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     notification.style.cssText = `
         position: fixed;
         top: 90px;
@@ -334,9 +350,9 @@ function showNotification(message, type = 'success') {
         z-index: 10000;
         animation: slideIn 0.3s ease;
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
@@ -376,18 +392,18 @@ if (searchInput) {
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         const menuItems = document.querySelectorAll('.menu-item');
-        
+
         menuItems.forEach(item => {
             const itemName = item.querySelector('.item-name').textContent.toLowerCase();
             const itemDesc = item.querySelector('.item-description').textContent.toLowerCase();
-            
+
             if (itemName.includes(query) || itemDesc.includes(query)) {
                 item.style.display = 'flex';
             } else {
                 item.style.display = 'none';
             }
         });
-        
+
         // Show/hide category sections if all items are hidden
         const categorySections = document.querySelectorAll('.category-section');
         categorySections.forEach(section => {

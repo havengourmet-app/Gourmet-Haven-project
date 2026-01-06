@@ -101,4 +101,65 @@ document.addEventListener('DOMContentLoaded', () => {
         // Redirect to login or handle logout
         window.location.href = 'login.html';
     });
+
+    // --- Order Sync & Rendering ---
+    renderOrders();
+
+    function renderOrders() {
+        const ordersList = document.querySelector('.orders-list');
+        if (!ordersList) return;
+
+        // Seed data if empty (to maintain the demo look)
+        if (!localStorage.getItem('gourmet_orders')) {
+            const seedOrders = [
+                {
+                    restaurant: 'Paradise Biryani',
+                    date: 'Jan 02, 2026',
+                    total: 15.50,
+                    status: 'Delivered',
+                    statusClass: 'status-delivered'
+                },
+                {
+                    restaurant: 'Dominos Pizza',
+                    date: 'Jan 05, 2026',
+                    total: 22.00,
+                    status: 'In-Progress',
+                    statusClass: 'status-inprogress'
+                },
+                {
+                    restaurant: 'Burger King',
+                    date: 'Dec 28, 2025',
+                    total: 12.99,
+                    status: 'Delivered',
+                    statusClass: 'status-delivered'
+                }
+            ];
+            localStorage.setItem('gourmet_orders', JSON.stringify(seedOrders));
+        }
+
+        const orders = JSON.parse(localStorage.getItem('gourmet_orders') || '[]');
+
+        // Clear current list
+        ordersList.innerHTML = '';
+
+        // Render orders (Reversed to show newest first)
+        orders.slice().reverse().forEach(order => {
+            const orderCard = document.createElement('div');
+            orderCard.className = 'order-card';
+
+            orderCard.innerHTML = `
+                <div class="order-info">
+                    <h4>${order.restaurant}</h4>
+                    <p class="order-date">${order.date}</p>
+                </div>
+                <div class="order-details">
+                    <span class="order-price">$${Number(order.total).toFixed(2)}</span>
+                    <span class="status-badge ${order.statusClass}">${order.status}</span>
+                </div>
+            `;
+
+            ordersList.appendChild(orderCard);
+        });
+    }
+
 });
