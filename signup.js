@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Use more specific IDs from signup.html
-  const signupForm = document.getElementById("signup-form"); // Use form ID
+  const signupForm = document.getElementById("signup-form");
   const emailInput = document.getElementById("email");
   const usernameInput = document.getElementById("username");
   const passwordInput = document.getElementById("password");
@@ -10,10 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ensure all elements were found
   if (!signupForm || !emailInput || !usernameInput || !passwordInput || !confirmPasswordInput || !errorMessage) {
     console.error("Signup form elements not found. Check HTML IDs.");
-    // Optionally display a user-facing error here
-    return; // Stop execution if elements are missing
+    return;
   }
-
 
   // Role Selection Logic
   const roleItems = document.querySelectorAll('.role-item');
@@ -33,15 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   signupForm.addEventListener("submit", async (event) => {
-    event.preventDefault(); // Prevent default form submission
+    event.preventDefault();
 
     // Clear previous errors
     hideError();
 
-    const role = roleInput ? roleInput.value : 'user'; // Default to user if not found
-    const email = emailInput.value.trim(); // Trim whitespace
+    const role = roleInput ? roleInput.value : 'user';
+    const email = emailInput.value.trim();
     const username = usernameInput.value.trim();
-    const password = passwordInput.value; // No trim for password
+    const password = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
 
     // --- 1. Frontend Validation ---
@@ -55,20 +53,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // --- Check password length (Bcrypt limit is 72 bytes) ---
-    // Frontend check (e.g., 60 characters) for better UX
     const MAX_PASSWORD_LENGTH = 60;
     if (password.length > MAX_PASSWORD_LENGTH) {
       showError(`Password must be ${MAX_PASSWORD_LENGTH} characters or less.`);
       return;
     }
-    // --- End of password length check ---
-
-    // Optional: Add more checks like email format, username format/length
 
     // --- 2. Send Data to Backend ---
     try {
-      // Add loading indicator? (e.g., disable button)
       const submitButton = signupForm.querySelector("button[type='submit']");
       if (submitButton) submitButton.disabled = true;
 
@@ -76,64 +68,64 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Add other headers if needed (e.g., CSRF token later)
         },
         body: JSON.stringify({
           role: role,
           email: email,
           username: username,
-          password: password, // Send the original password to backend
+          password: password,
         }),
       });
 
       // --- 3. Handle Backend Response ---
       if (response.ok) {
-        // Success
-        const result = await response.json(); // Get the created user data (UserOut)
+        const result = await response.json();
         console.log("Signup successful:", result);
-        showError("Signup successful! Redirecting to login...", true); // Show success message
+        showError("Signup successful! Redirecting...", true);
+        
         // Fade out effect
         document.body.style.transition = 'opacity 0.5s ease-out';
         document.body.style.opacity = '0';
-        // Redirect after fade
+        
+        // Redirect based on role
         setTimeout(() => {
-          window.location.href = 'login.html'; // Redirect to login page
-        }, 500); // Match fade duration
+          if (role === 'owner') {
+            window.location.href = 'owner-homepage.html';
+          } else if (role === 'delivery_partner') {
+            window.location.href = 'delivery-dashboard.html'; // You'll create this later
+          } else {
+            window.location.href = 'user-homepage.html';
+          }
+        }, 500);
 
       } else {
-        // Handle specific errors (like 400 Bad Request)
-        let errorMsg = "An unknown error occurred during signup."; // Default
+        let errorMsg = "An unknown error occurred during signup.";
         try {
           const errorData = await response.json();
-          // Use optional chaining (?.) in case detail is missing
           errorMsg = errorData?.detail || `Server error: ${response.status}`;
         } catch (jsonError) {
-          // If response is not JSON
           errorMsg = `Server error: ${response.status} - ${response.statusText}`;
         }
         showError(errorMsg);
-        if (submitButton) submitButton.disabled = false; // Re-enable button on error
+        if (submitButton) submitButton.disabled = false;
       }
 
     } catch (networkError) {
-      // Handle network errors (e.g., server down)
       console.error("Network error during signup:", networkError);
       showError("Could not connect to the server. Please check your network and try again.");
       const submitButton = signupForm.querySelector("button[type='submit']");
-      if (submitButton) submitButton.disabled = false; // Re-enable button on error
+      if (submitButton) submitButton.disabled = false;
     }
   });
 
   function showError(message, isSuccess = false) {
     errorMessage.textContent = message;
-    errorMessage.style.display = "block"; // Make it visible
-    errorMessage.style.color = isSuccess ? "green" : "red"; // Use CSS classes ideally
-    // Consider adding ARIA attributes for accessibility
+    errorMessage.style.display = "block";
+    errorMessage.style.color = isSuccess ? "#01de1a" : "#e57373";
   }
 
   function hideError() {
     errorMessage.textContent = '';
-    errorMessage.style.display = 'none'; // Hide it
+    errorMessage.style.display = 'none';
   }
 });
-
