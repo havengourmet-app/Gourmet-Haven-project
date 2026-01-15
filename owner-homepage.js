@@ -26,6 +26,15 @@ let menuItems = [
         category: 'pizza',
         vegetarian: true,
         available: true
+    },
+    {
+        id: 4,
+        name: 'Rowdy jan Bajji lu',
+        description: 'iron ee vanchaala enti',
+        price: 2000,
+        category: 'Main Course',
+        vegetarian: false,
+        available: true
     }
 ];
 
@@ -73,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Check authentication
 function checkAuthentication() {
     const token = localStorage.getItem('accessToken');
-    
+
     if (!token) {
         console.log('No token found - would redirect to login');
         return;
@@ -83,7 +92,7 @@ function checkAuthentication() {
 // Load user information
 async function loadUserInfo() {
     const token = localStorage.getItem('accessToken');
-    
+
     if (!token) return;
 
     try {
@@ -97,10 +106,10 @@ async function loadUserInfo() {
 
         if (response.ok) {
             const user = await response.json();
-            
+
             const userNameElement = document.getElementById('user-name');
             const userInitialElement = document.getElementById('user-initial');
-            
+
             if (user.username) {
                 userNameElement.textContent = user.username;
                 userInitialElement.textContent = user.username.charAt(0).toUpperCase();
@@ -135,12 +144,12 @@ function initializeDropdown() {
 // Initialize time period selector
 function initializeTimePeriodSelector() {
     const periodButtons = document.querySelectorAll('.period-btn');
-    
+
     periodButtons.forEach(button => {
         button.addEventListener('click', () => {
             periodButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            
+
             currentPeriod = button.getAttribute('data-period');
             updateDashboard();
         });
@@ -151,21 +160,21 @@ function initializeTimePeriodSelector() {
 function updateDashboard() {
     const currentStats = stats[currentPeriod];
     const currentOrders = sampleOrders[currentPeriod];
-    
+
     document.getElementById('total-orders').textContent = currentStats.orders;
     document.getElementById('total-revenue').textContent = `₹${currentStats.revenue.toLocaleString()}`;
     document.getElementById('avg-rating').textContent = currentStats.rating.toFixed(1);
     document.getElementById('menu-items-count').textContent = menuItems.length;
-    
+
     renderOrders(currentOrders);
 }
 
 // Render orders
 function renderOrders(orders) {
     const ordersList = document.getElementById('orders-list');
-    
+
     if (!ordersList) return;
-    
+
     if (!orders || orders.length === 0) {
         ordersList.innerHTML = `
             <div class="empty-state">
@@ -178,7 +187,7 @@ function renderOrders(orders) {
         `;
         return;
     }
-    
+
     ordersList.innerHTML = orders.map(order => `
         <div class="order-item">
             <div class="order-info">
@@ -195,9 +204,9 @@ function renderOrders(orders) {
 // Render menu items
 function renderMenuItems() {
     const container = document.getElementById('menu-items');
-    
+
     if (!container) return;
-    
+
     if (menuItems.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -209,7 +218,7 @@ function renderMenuItems() {
         `;
         return;
     }
-    
+
     container.innerHTML = menuItems.map(item => `
         <div class="menu-item-card" data-id="${item.id}">
             <div class="menu-item-info">
@@ -248,7 +257,7 @@ function renderMenuItems() {
 
 // Format category name
 function formatCategory(category) {
-    return category.split('-').map(word => 
+    return category.split('-').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
 }
@@ -267,9 +276,9 @@ function toggleItemAvailability(id) {
 function editMenuItem(id) {
     editingItemId = id;
     const item = menuItems.find(i => i.id === id);
-    
+
     if (!item) return;
-    
+
     document.getElementById('modal-title').textContent = 'Edit Menu Item';
     document.getElementById('item-name').value = item.name;
     document.getElementById('item-description').value = item.description || '';
@@ -277,14 +286,14 @@ function editMenuItem(id) {
     document.getElementById('item-category').value = item.category;
     document.getElementById('item-vegetarian').checked = item.vegetarian;
     document.getElementById('item-available').checked = item.available;
-    
+
     document.getElementById('menu-modal').classList.add('show');
 }
 
 // Delete menu item
 function deleteMenuItem(id) {
     if (!confirm('Are you sure you want to delete this item?')) return;
-    
+
     menuItems = menuItems.filter(item => item.id !== id);
     renderMenuItems();
     updateDashboard();
@@ -297,9 +306,9 @@ function initializeModal() {
     const closeBtn = document.getElementById('modal-close');
     const cancelBtn = document.getElementById('cancel-btn');
     const form = document.getElementById('menu-item-form');
-    
+
     if (!modal || !addBtn || !closeBtn || !cancelBtn || !form) return;
-    
+
     addBtn.addEventListener('click', () => {
         editingItemId = null;
         document.getElementById('modal-title').textContent = 'Add Menu Item';
@@ -307,28 +316,28 @@ function initializeModal() {
         document.getElementById('item-available').checked = true;
         modal.classList.add('show');
     });
-    
+
     closeBtn.addEventListener('click', () => {
         modal.classList.remove('show');
     });
-    
+
     cancelBtn.addEventListener('click', () => {
         modal.classList.remove('show');
     });
-    
+
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('show');
         }
     });
-    
+
     form.addEventListener('submit', handleFormSubmit);
 }
 
 // Handle form submission
 function handleFormSubmit(e) {
     e.preventDefault();
-    
+
     const formData = {
         name: document.getElementById('item-name').value,
         description: document.getElementById('item-description').value,
@@ -337,7 +346,7 @@ function handleFormSubmit(e) {
         vegetarian: document.getElementById('item-vegetarian').checked,
         available: document.getElementById('item-available').checked
     };
-    
+
     if (editingItemId) {
         const item = menuItems.find(i => i.id === editingItemId);
         if (item) {
@@ -350,7 +359,7 @@ function handleFormSubmit(e) {
         };
         menuItems.push(newItem);
     }
-    
+
     renderMenuItems();
     updateDashboard();
     document.getElementById('menu-modal').classList.remove('show');
@@ -359,7 +368,7 @@ function handleFormSubmit(e) {
 // Initialize logout
 function initializeLogout() {
     const logoutBtn = document.getElementById('logout-btn');
-    
+
     if (!logoutBtn) return;
 
     logoutBtn.addEventListener('click', (e) => {
@@ -371,14 +380,14 @@ function initializeLogout() {
 // Handle logout
 function handleLogout() {
     const confirmed = confirm('Are you sure you want to logout?');
-    
+
     if (!confirmed) return;
 
     localStorage.removeItem('accessToken');
-    
+
     document.body.style.transition = 'opacity 0.3s ease';
     document.body.style.opacity = '0';
-    
+
     setTimeout(() => {
         window.location.href = 'login.html';
     }, 300);
