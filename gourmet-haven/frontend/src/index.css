@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #1a1a1a;
+    background: #f8f9fa;
+    font-family: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: #f8f9fa;
+    color: #1a1a1a;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .card-surface {
+    @apply rounded-3xl bg-white shadow-card;
+  }
+
+  .page-shell {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold tracking-tight text-[#1a1a1a] sm:text-3xl;
+  }
+
+  .muted-copy {
+    @apply text-sm leading-6 text-slate-500;
+  }
+
+  .brand-button {
+    @apply rounded-full bg-[#01de1a] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e];
+  }
+
+  .brand-outline-button {
+    @apply rounded-full border border-[#01de1a] px-5 py-3 text-sm font-semibold text-[#01de1a] transition hover:bg-[#01de1a] hover:text-black;
+  }
+}
