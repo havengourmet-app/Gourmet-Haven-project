@@ -1,16 +1,15 @@
 # Gourmet Haven Workspace
 
-The active full-stack project scaffold now lives in [gourmet-haven/README.md](gourmet-haven/README.md).
+The active application now lives inside `gourmet-haven/`.
 
-## What changed
+## Where to work
 
-- A new `gourmet-haven/` workspace has been created for the React + Vite + Tailwind frontend, Express backend, and Supabase migrations.
-- The older static HTML/CSS/JS prototype still remains at the repository root as legacy reference material.
-- New work should continue inside `gourmet-haven/` unless you ask me to migrate or remove the legacy files.
+- Main project docs: `gourmet-haven/README.md`
+- Progress tracker: `gourmet-haven/progress.md`
+- Frontend app: `gourmet-haven/frontend`
+- Backend app: `gourmet-haven/backend`
+- Supabase schema: `gourmet-haven/supabase/migrations/0001_initial_schema.sql`
 
-## New project entry points
+## Repository note
 
-- Frontend app: [gourmet-haven/frontend](gourmet-haven/frontend)
-- Backend app: [gourmet-haven/backend](gourmet-haven/backend)
-- Supabase schema: [gourmet-haven/supabase/migrations/0001_initial_schema.sql](gourmet-haven/supabase/migrations/0001_initial_schema.sql)
-- Project docs: [gourmet-haven/README.md](gourmet-haven/README.md)
+The older static HTML, CSS, and JS prototype still remains at the repository root as legacy reference material for theme, layout ideas, and assets. New implementation work should continue inside `gourmet-haven/`.

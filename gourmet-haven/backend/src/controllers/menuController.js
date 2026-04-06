@@ -2,6 +2,37 @@ import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../config/supabaseClient.js";
 import { assertPaise } from "../utils/money.js";
 
+async function assertOwnerOwnsRestaurant(ownerId, restaurantId) {
+  const { data, error } = await supabaseAdmin
+    .from("restaurants")
+    .select("id")
+    .eq("id", restaurantId)
+    .eq("owner_id", ownerId)
+    .single();
+
+  if (error || !data) {
+    const accessError = new Error("You can only manage menu items for your own restaurant.");
+    accessError.statusCode = 403;
+    throw accessError;
+  }
+}
+
+async function assertOwnerOwnsMenuItem(ownerId, menuItemId) {
+  const { data: menuItem, error: menuItemError } = await supabaseAdmin
+    .from("menu_items")
+    .select("id, restaurant_id")
+    .eq("id", menuItemId)
+    .single();
+
+  if (menuItemError || !menuItem) {
+    const missingError = new Error("Menu item not found.");
+    missingError.statusCode = 404;
+    throw missingError;
+  }
+
+  await assertOwnerOwnsRestaurant(ownerId, menuItem.restaurant_id);
+}
+
 export async function listMenuItems(req, res) {
   const restaurantId = req.query.restaurantId;
 
@@ -56,6 +87,8 @@ export async function createMenuItem(req, res) {
     });
   }
 
+  await assertOwnerOwnsRestaurant(req.profile?.id || req.user.id, req.body.restaurantId);
+
   const { data, error } = await supabaseAdmin.from("menu_items").insert(payload).select().single();
 
   if (error) {
@@ -82,6 +115,8 @@ export async function updateMenuItem(req, res) {
       }
     });
   }
+
+  await assertOwnerOwnsMenuItem(req.profile?.id || req.user.id, req.params.menuItemId);
 
   const patch = {
     ...(typeof req.body.name !== "undefined" ? { name: req.body.name } : {}),

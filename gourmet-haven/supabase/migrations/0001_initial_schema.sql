@@ -353,6 +353,22 @@ for select
 to authenticated
 using (assigned_delivery_id = auth.uid());
 
+drop policy if exists "orders_select_delivery_queue" on public.orders;
+create policy "orders_select_delivery_queue"
+on public.orders
+for select
+to authenticated
+using (
+  assigned_delivery_id is null
+  and status in ('accepted', 'preparing')
+  and exists (
+    select 1
+    from public.profiles
+    where public.profiles.id = auth.uid()
+      and public.profiles.role = 'delivery'
+  )
+);
+
 drop policy if exists "orders_update_delivery" on public.orders;
 create policy "orders_update_delivery"
 on public.orders
@@ -360,3 +376,17 @@ for update
 to authenticated
 using (assigned_delivery_id = auth.uid())
 with check (assigned_delivery_id = auth.uid());
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'orders'
+  ) then
+    alter publication supabase_realtime add table public.orders;
+  end if;
+end
+$$;

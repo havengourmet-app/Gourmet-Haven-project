@@ -1,19 +1,24 @@
 import { apiRequest } from "./apiClient";
 
-export function getSubscriptionStatus() {
-  return apiRequest("/subscriptions/me");
+export async function getSubscriptionStatus() {
+  const response = await apiRequest("/subscriptions/me");
+  return response?.data || response;
 }
 
-export function createSubscriptionCheckout(payload) {
-  return apiRequest("/subscriptions/checkout", {
+export async function createSubscriptionCheckout(payload) {
+  const response = await apiRequest("/subscriptions/checkout", {
     method: "POST",
     body: JSON.stringify(payload)
   });
+
+  return response?.data || response;
 }
 
-export function verifySubscription(payload) {
-  return apiRequest("/subscriptions/verify", {
+export async function verifySubscription(payload) {
+  const response = await apiRequest("/subscriptions/verify", {
     method: "POST",
     body: JSON.stringify(payload)
   });
+
+  return response?.data || response;
 }

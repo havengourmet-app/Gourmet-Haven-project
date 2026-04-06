@@ -1,27 +1,34 @@
 import { apiRequest } from "./apiClient";
 
-export function listCustomerOrders() {
-  return apiRequest("/orders/customer");
+export async function listCustomerOrders() {
+  const response = await apiRequest("/orders/customer");
+  return response?.data || response;
 }
 
-export function listOwnerOrders() {
-  return apiRequest("/orders/owner");
+export async function listOwnerOrders() {
+  const response = await apiRequest("/orders/owner");
+  return response?.data || response;
 }
 
-export function listDeliveryOrders() {
-  return apiRequest("/orders/delivery");
+export async function listDeliveryOrders() {
+  const response = await apiRequest("/orders/delivery");
+  return response?.data || response;
 }
 
-export function createOrder(payload) {
-  return apiRequest("/orders", {
+export async function createOrder(payload) {
+  const response = await apiRequest("/orders", {
     method: "POST",
     body: JSON.stringify(payload)
   });
+
+  return response?.data || response;
 }
 
-export function updateOrderStatus(orderId, payload) {
-  return apiRequest(`/orders/${orderId}/status`, {
+export async function updateOrderStatus(orderId, payload) {
+  const response = await apiRequest(`/orders/${orderId}/status`, {
     method: "PATCH",
     body: JSON.stringify(payload)
   });
+
+  return response?.data || response;
 }
