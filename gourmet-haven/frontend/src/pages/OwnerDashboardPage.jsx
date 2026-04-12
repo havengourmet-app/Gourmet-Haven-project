@@ -26,7 +26,9 @@ import { createSubscriptionCheckout, getSubscriptionStatus } from "../services/s
 const EMPTY_RESTAURANT_FORM = {
   name: "",
   city: "Hyderabad",
-  cuisineSummary: ""
+  cuisineSummary: "",
+  logoUrl: "",
+  coverImageUrl: ""
 };
 
 function normalizeSubscription(subscription) {
@@ -426,7 +428,28 @@ export default function OwnerDashboardPage() {
           </div>
         ) : null}
 
-        <form onSubmit={handleCreateRestaurant} className="mt-6 grid gap-4 md:grid-cols-3">
+      <form onSubmit={handleCreateRestaurant} className="mt-6 grid gap-4 md:grid-cols-3">
+          <label className="block">
+          <span className="mb-2 block text-sm text-slate-500">Logo URL</span>
+          <input
+            type="url"
+            value={restaurantForm.logoUrl}
+            onChange={(event) => setRestaurantForm((current) => ({ ...current, logoUrl: event.target.value }))}
+            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
+            placeholder="https://example.com/logo.jpg"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-sm text-slate-500">Cover Image URL</span>
+          <input
+            type="url"
+            value={restaurantForm.coverImageUrl}
+            onChange={(event) => setRestaurantForm((current) => ({ ...current, coverImageUrl: event.target.value }))}
+            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
+            placeholder="https://example.com/cover.jpg"
+          />
+          </label>
           <label className="block">
             <span className="mb-2 block text-sm text-slate-500">Restaurant name</span>
             <input

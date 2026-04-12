@@ -3,6 +3,7 @@ import OrderStatusBadge from "../components/common/OrderStatusBadge";
 import Shell from "../components/common/Shell";
 import MenuItemCard from "../components/customer/MenuItemCard";
 import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
+import { listMenuItems } from "../services/restaurantService";
 import { legacyAssets } from "../lib/legacyAssets";
 import {
   formatOrderDate,
@@ -55,10 +56,64 @@ export default function OrdersPage() {
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const summary = totals();
-  const menuItems = SAMPLE_MENU.map((item) => ({
-    ...item,
-    restaurantId: activeRestaurant?.id || null
-  }));
+  const [menuItems, setMenuItems] = useState([]);
+const [menuReady, setMenuReady] = useState(false);
+
+// Add this useEffect to fetch menu items
+useEffect(() => {
+  let isMounted = true;
+
+  async function loadMenu() {
+    if (!activeRestaurant?.id) {
+      if (isMounted) {
+        setMenuItems(SAMPLE_MENU);
+        setMenuReady(true);
+      }
+      return;
+    }
+
+    setMenuReady(false);
+
+    try {
+      const items = await listMenuItems(activeRestaurant.id);
+      
+      if (isMounted) {
+        // If no real menu items, show sample menu
+        if (!items || items.length === 0) {
+          setMenuItems(SAMPLE_MENU.map((item) => ({
+            ...item,
+            restaurantId: activeRestaurant.id
+          })));
+        } else {
+          setMenuItems(items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            pricePaise: item.price_paise,
+            category: item.category,
+            isVeg: item.is_veg,
+            image: item.image_url || legacyAssets.chicken,
+            restaurantId: activeRestaurant.id
+          })));
+        }
+      }
+    } catch {
+      if (isMounted) {
+        setMenuItems(SAMPLE_MENU);
+      }
+    } finally {
+      if (isMounted) {
+        setMenuReady(true);
+      }
+    }
+  }
+
+  loadMenu();
+
+  return () => {
+    isMounted = false;
+  };
+}, [activeRestaurant?.id]);
   const activeOrders = customerOrders.filter((order) => !["delivered", "cancelled"].includes(order.status));
   const orderHistory = customerOrders.filter((order) => ["delivered", "cancelled"].includes(order.status));
 
