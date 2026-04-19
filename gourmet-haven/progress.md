@@ -13,6 +13,17 @@ When a major feature or important architectural step lands, add a new entry at t
 
 ## Major milestones
 
+### 2026-04-19 - Legacy static prototype archived after React migration
+
+- Moved the old root-level HTML, CSS, JavaScript, image, and video prototype files into `legacy-static-prototype/`
+- Grouped archived media assets under one `legacy-static-prototype/media/` folder
+- Grouped archived styles under `legacy-static-prototype/styles/` and scripts under `legacy-static-prototype/scripts/`
+- Updated archived prototype references so the old pages can still be opened for design comparison if needed
+- Kept the active `gourmet-haven/` React and Express workspace untouched
+
+Impact:
+The repository root is now cleaner, and the active project is clearly separated from legacy reference material.
+
 ### 2026-04-06 - Owner dashboard management flows implemented
 
 - Replaced the placeholder owner dashboard controls with real restaurant setup, menu add/edit, and subscription management flows

@@ -62,6 +62,8 @@ gourmet-haven/
 `-- progress.md
 ```
 
+The previous static HTML/CSS/JS prototype is archived outside this workspace at `../legacy-static-prototype/`. It is kept only as reference material and is not part of the active React/Express runtime.
+
 ## Implemented so far
 
 ### Frontend
@@ -176,7 +178,7 @@ If you already applied the migration before the realtime work landed, rerun the 
 ## Working conventions
 
 - Use `gourmet-haven/` for all new implementation work
-- Treat the root-level static files as legacy reference material
+- Treat `../legacy-static-prototype/` as archived reference material only
 - Add only major milestones to `progress.md`
 - Keep future changes aligned with the existing Gourmet Haven visual direction unless a redesign is explicitly requested
 

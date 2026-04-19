@@ -7,15 +7,14 @@
 }
 
 /* Full screen background */
-body,
-html {
+body, html {
   height: 100%;
   width: 100%;
 }
 
 /* Background image with blur */
 .background {
-  background: url('signup_page.jpeg') no-repeat center center/cover;
+  background: url('../media/food.jpeg') no-repeat center center/cover;
   filter: blur(6px);
   height: 100%;
   width: 100%;
@@ -26,13 +25,13 @@ html {
 }
 
 /* Glassmorphism card */
-.signup-container {
+.login-container {
   position: relative;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 400px;
-  padding: 40px;
+  width: 350px;
+  padding: 35px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 15px;
   backdrop-filter: blur(12px);
@@ -50,7 +49,7 @@ html {
 }
 
 .nav-link {
-  color: #01de1a;
+  color: #00e5ff;
   text-decoration: none;
   font-size: 14px;
   padding: 8px 12px;
@@ -65,33 +64,45 @@ html {
 }
 
 /* Inputs */
-/* Inputs and Select */
-.signup-form input,
-.signup-form select {
+.login-form input {
   display: block;
   width: 100%;
   padding: 14px;
-  margin: 12px 0;
-  border: 2px solid #3f4646;
+  margin: 15px 0;
+  border: 2px solid rgba(0, 229, 255, 0.3);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
   outline: none;
   font-size: 14px;
+  transition: border-color 0.3s ease;
 }
 
-/* Ensure options have dark text for readability on standard dropdowns */
-.signup-form select option {
-  color: #000;
-  background: #fff;
+.login-form input:focus {
+  border-color: #01de1a;
 }
 
-.signup-form input::placeholder {
+.login-form input::placeholder {
   color: #cfcfcf;
 }
 
+/* Forgot password link */
+.forgot-password {
+  display: block;
+  color: #01de1a;
+  text-decoration: none;
+  font-size: 13px;
+  margin: 10px 0 20px 0;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: #01de1a;
+  text-decoration: underline;
+}
+
 /* Button */
-.signup-form button {
+.login-form button {
   margin-top: 10px;
   padding: 12px;
   width: 120px;
@@ -102,57 +113,39 @@ html {
   font-weight: bold;
   cursor: pointer;
   transition: 0.3s;
-}
-
-.signup-form button:hover {
-  background: #01de1a;
-}
-
-/* Role Navbar Styles */
-.role-navbar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 25px;
-  padding: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.role-item {
-  flex: 1;
-  padding: 10px;
-  text-align: center;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   font-size: 14px;
-  color: #fff;
-  font-weight: 500;
 }
 
-.role-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.role-item.active {
+.login-form button:hover {
   background: #01de1a;
-  color: #000;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 /* Footer link */
-.signup-container p {
-  margin-top: 20px;
+.login-container p {
+  margin-top: 25px;
   font-size: 14px;
   color: #ddd;
 }
 
-.signup-container a {
+.login-container a {
   color: #01de1a;
   text-decoration: none;
 }
 
-.signup-container a:hover {
+.login-container a:hover {
   text-decoration: underline;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .login-container {
+    width: 90%;
+    padding: 25px;
+  }
+  
+  .nav-links {
+    flex-direction: column;
+    gap: 10px;
+  }
 }

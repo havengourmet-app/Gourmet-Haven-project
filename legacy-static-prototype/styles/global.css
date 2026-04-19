@@ -1,0 +1,6 @@
+/*
+  Legacy placeholder stylesheet.
+  The original static login page referenced global.css, but the file was
+  not present at the repository root. Keeping this file prevents a missing
+  stylesheet request when opening the archived prototype.
+*/

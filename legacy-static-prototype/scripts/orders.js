@@ -5,7 +5,7 @@ let cart = {
         name: 'Spicy Peas Pizza',
         price: 7.00,
         quantity: 1,
-        image: 'food.jpeg',
+        image: 'media/food.jpeg',
         variant: 'Full'
     },
     'butter-corn-cone': {
@@ -13,7 +13,7 @@ let cart = {
         name: 'Butter Corn Cone',
         price: 12.00,
         quantity: 1,
-        image: 'food_item1.jpeg',
+        image: 'media/food_item1.jpeg',
         variant: 'Full'
     }
 };
