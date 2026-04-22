@@ -149,7 +149,7 @@ export default function CustomerDashboardPage() {
             <RestaurantCard
               key={restaurant.id}
               restaurant={restaurant}
-              onBrowse={() => navigate("/orders")}
+              onBrowse={(restaurant) => navigate(`/orders?restaurantId=${restaurant.id}`)}
             />
           ))}
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import OrderStatusBadge from "../components/common/OrderStatusBadge";
 import Shell from "../components/common/Shell";
 import MenuItemCard from "../components/customer/MenuItemCard";
@@ -58,6 +59,8 @@ export default function OrdersPage() {
   const summary = totals();
   const [menuItems, setMenuItems] = useState([]);
 const [menuReady, setMenuReady] = useState(false);
+  const [searchParams] = useSearchParams();
+  const requestedRestaurantId = searchParams.get("restaurantId");
 
 // Add this useEffect to fetch menu items
 useEffect(() => {
@@ -99,7 +102,11 @@ useEffect(() => {
       }
     } catch {
       if (isMounted) {
-        setMenuItems(SAMPLE_MENU);
+        if (!activeRestaurant?.id) {
+          setMenuItems(SAMPLE_MENU);  // restaurantId stays null — that's fine, checkout will warn
+          setMenuReady(true);
+          return;
+    }
       }
     } finally {
       if (isMounted) {
@@ -118,33 +125,31 @@ useEffect(() => {
   const orderHistory = customerOrders.filter((order) => ["delivered", "cancelled"].includes(order.status));
 
   useEffect(() => {
-    let isMounted = true;
+  let isMounted = true;
 
-    async function loadRestaurants() {
-      try {
-        const response = await listRestaurants();
-        const restaurants = response?.data || [];
+  async function loadRestaurants() {
+    try {
+      const response = await listRestaurants();
+      const restaurants = response?.data || [];
 
-        if (isMounted) {
-          setActiveRestaurant(restaurants[0] || null);
-        }
-      } catch {
-        if (isMounted) {
-          setActiveRestaurant(null);
-        }
-      } finally {
-        if (isMounted) {
-          setRestaurantsReady(true);
-        }
+      if (isMounted) {
+        // Prefer the restaurant the customer clicked, fall back to first
+        const target =
+          (requestedRestaurantId && restaurants.find((r) => r.id === requestedRestaurantId)) ||
+          restaurants[0] ||
+          null;
+        setActiveRestaurant(target);
       }
+    } catch {
+      if (isMounted) setActiveRestaurant(null);
+    } finally {
+      if (isMounted) setRestaurantsReady(true);
     }
+  }
 
     loadRestaurants();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    return () => { isMounted = false; };
+  }, [requestedRestaurantId]); // re-run if param changes
 
   useEffect(() => {
     let isMounted = true;
