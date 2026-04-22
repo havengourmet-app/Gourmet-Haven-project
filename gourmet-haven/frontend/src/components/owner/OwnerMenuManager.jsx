@@ -6,7 +6,8 @@ const EMPTY_FORM = {
   category: "General",
   priceRupees: "",
   isVeg: false,
-  isAvailable: true
+  isAvailable: true,
+  imageUrl: ""
 };
 
 function toFormValues(item) {
@@ -20,7 +21,8 @@ function toFormValues(item) {
     category: item.category || "General",
     priceRupees: item.price_paise ? String((item.price_paise / 100).toFixed(2)) : "",
     isVeg: Boolean(item.is_veg),
-    isAvailable: typeof item.is_available === "boolean" ? item.is_available : true
+    isAvailable: typeof item.is_available === "boolean" ? item.is_available : true,
+    imageUrl: item.image_url || ""
   };
 }
 
@@ -36,11 +38,13 @@ export default function OwnerMenuManager({
   const [editingItemId, setEditingItemId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState("");
+  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   useEffect(() => {
     if (mode === "create") {
       setForm(EMPTY_FORM);
       setError("");
+      setImagePreviewError(false);
       return;
     }
 
@@ -48,12 +52,14 @@ export default function OwnerMenuManager({
       const item = items.find((entry) => entry.id === editingItemId);
       setForm(toFormValues(item));
       setError("");
+      setImagePreviewError(false);
       return;
     }
 
     setEditingItemId(null);
     setForm(EMPTY_FORM);
     setError("");
+    setImagePreviewError(false);
   }, [editingItemId, items, mode]);
 
   async function handleSubmit(event) {
@@ -79,7 +85,8 @@ export default function OwnerMenuManager({
       category: form.category.trim() || "General",
       pricePaise: Math.round(parsedPrice * 100),
       isVeg: form.isVeg,
-      isAvailable: form.isAvailable
+      isAvailable: form.isAvailable,
+      imageUrl: form.imageUrl.trim() || null
     };
 
     try {
@@ -147,6 +154,47 @@ export default function OwnerMenuManager({
               placeholder="Tell customers what makes this item special."
             />
           </label>
+
+          {/* Image URL field with live preview */}
+          <div className="md:col-span-2">
+            <label className="block">
+              <span className="mb-2 block text-sm text-slate-500">
+                Item image URL
+                <span className="ml-2 text-xs text-slate-400">(optional — paste a direct image link)</span>
+              </span>
+              <input
+                type="url"
+                value={form.imageUrl}
+                onChange={(event) => {
+                  setImagePreviewError(false);
+                  setForm((current) => ({ ...current, imageUrl: event.target.value }));
+                }}
+                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
+                placeholder="https://example.com/chicken-biryani.jpg"
+              />
+            </label>
+
+            {form.imageUrl && !imagePreviewError ? (
+              <div className="mt-3 overflow-hidden rounded-2xl border border-black/10 bg-white">
+                <div className="flex items-center gap-2 border-b border-black/5 px-4 py-2">
+                  <span className="h-2 w-2 rounded-full bg-[#01de1a]" />
+                  <span className="text-xs text-slate-400">Image preview</span>
+                </div>
+                <img
+                  src={form.imageUrl}
+                  alt="Menu item preview"
+                  onError={() => setImagePreviewError(true)}
+                  className="h-48 w-full object-cover"
+                />
+              </div>
+            ) : null}
+
+            {imagePreviewError ? (
+              <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                Could not load image from this URL. Make sure it's a direct link to a publicly accessible image (JPG, PNG, WebP).
+              </div>
+            ) : null}
+          </div>
 
           <label className="block">
             <span className="mb-2 block text-sm text-slate-500">Category</span>
@@ -227,12 +275,28 @@ export default function OwnerMenuManager({
               key={item.id}
               className="flex flex-col gap-3 rounded-2xl bg-[#f8f9fa] p-4 lg:flex-row lg:items-center lg:justify-between"
             >
-              <div>
-                <h4 className="font-semibold text-[#1a1a1a]">{item.name}</h4>
-                <p className="mt-1 text-sm text-slate-500">
-                  {item.category} - Rs {(Number(item.price_paise || 0) / 100).toFixed(2)}
-                </p>
-                {item.description ? <p className="mt-2 text-sm text-slate-500">{item.description}</p> : null}
+              <div className="flex items-center gap-4">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
+                    onError={(e) => { e.target.style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-semibold text-[#1a1a1a]">{item.name}</h4>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {item.category} · Rs {(Number(item.price_paise || 0) / 100).toFixed(2)}
+                  </p>
+                  {item.description ? <p className="mt-1 text-xs text-slate-400 line-clamp-1">{item.description}</p> : null}
+                </div>
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-500">
                 <span
@@ -241,6 +305,9 @@ export default function OwnerMenuManager({
                   }`}
                 >
                   {item.is_available ? "Available" : "Paused"}
+                </span>
+                <span className={`rounded-full px-3 py-1 text-xs ${item.is_veg ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                  {item.is_veg ? "Veg" : "Non-veg"}
                 </span>
                 <button
                   type="button"
