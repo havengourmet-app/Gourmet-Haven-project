@@ -34,7 +34,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     data: {
-      service: "gourmet-haven-backend",
+      service: "quickdyne-backend",
       environment: process.env.NODE_ENV || "development",
       integrations: {
         supabaseAuth: hasSupabaseAuthConfig,
@@ -58,5 +58,5 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(`Gourmet Haven backend listening on http://localhost:${port}`);
+  console.log(`QuickDyne backend listening on http://localhost:${port}`);
 });

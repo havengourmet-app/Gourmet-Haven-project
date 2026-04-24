@@ -84,7 +84,7 @@ export default function CustomerDashboardPage() {
   return (
     <Shell
       title={`Discover the best of ${activeCity}`}
-      subtitle="Browse subscription-backed restaurants with predictable pricing, live order tracking, and the same clean Gourmet Haven dashboard feel you already built."
+      subtitle="Browse subscription-backed restaurants with predictable pricing, live order tracking, and the same clean QuickDyne dashboard feel you already built."
       actions={
         <button
           type="button"
@@ -98,7 +98,7 @@ export default function CustomerDashboardPage() {
       <section className="rounded-[1.5rem] bg-gradient-to-r from-[#01de1a] to-[#00b514] px-8 py-12 text-white">
         <h2 className="text-4xl font-bold">What are you craving today?</h2>
         <p className="mt-3 max-w-2xl text-base text-white/90">
-          Order from the best restaurants near you while keeping the original Gourmet Haven bright, clean dashboard style.
+          Order from the best restaurants near you while keeping the original QuickDyne bright, clean dashboard style.
         </p>
       </section>
 
@@ -120,7 +120,7 @@ export default function CustomerDashboardPage() {
           <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Why customers stay</p>
           <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">Reliable delivery without restaurant markups</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-            Gourmet Haven is built around fixed subscription revenue for owners, which means restaurants do not need to
+            QuickDyne is built around fixed subscription revenue for owners, which means restaurants do not need to
             inflate prices to offset commission-heavy platforms.
           </p>
         </div>

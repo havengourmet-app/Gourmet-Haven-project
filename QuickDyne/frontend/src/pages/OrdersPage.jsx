@@ -340,7 +340,7 @@ useEffect(() => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">{shortOrderId(order.id)}</p>
                     <h3 className="mt-2 text-2xl font-semibold text-[#1a1a1a]">
-                      {order.restaurant?.name || "Gourmet Haven order"}
+                      {order.restaurant?.name || "QuickDyne order"}
                     </h3>
                     <p className="mt-2 text-sm text-slate-500">
                       {formatOrderDate(order.created_at)} · {getItemCount(order)} items · {formatPaise(order.total_paise)}
@@ -392,7 +392,7 @@ useEffect(() => {
                   <div>
                     <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{shortOrderId(order.id)}</p>
                     <h3 className="mt-2 text-lg font-semibold text-[#1a1a1a]">
-                      {order.restaurant?.name || "Gourmet Haven order"}
+                      {order.restaurant?.name || "QuickDyne order"}
                     </h3>
                     <p className="mt-2 text-sm text-slate-500">{formatOrderDate(order.created_at)}</p>
                   </div>

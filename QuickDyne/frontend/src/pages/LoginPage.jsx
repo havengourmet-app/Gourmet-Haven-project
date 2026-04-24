@@ -55,7 +55,7 @@ export default function LoginPage() {
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-[#01de1a]"
-              placeholder="owner@gourmethaven.com"
+              placeholder="owner@quickdyne.com"
             />
           </label>
 

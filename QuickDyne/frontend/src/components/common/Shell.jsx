@@ -41,7 +41,7 @@ export default function Shell({ children, title, subtitle, actions }) {
                 to="/"
                 className="text-2xl font-bold tracking-wide text-[#01de1a]"
               >
-                GOURMET HAVEN
+                QuickDyne
               </Link>
               <RoleBadge role={role} />
             </div>

@@ -19,7 +19,7 @@ export async function uploadMenuItemImage(file) {
   // ── Try signed Cloudinary upload ────────────────────────────────────────────
   let signData = null;
   try {
-    const response = await createUploadSignature("gourmet-haven/menu-items");
+    const response = await createUploadSignature("quickdyne/menu-items");
     signData = response?.data || null;
   } catch {
     // Cloudinary not configured — fall through to local blob fallback

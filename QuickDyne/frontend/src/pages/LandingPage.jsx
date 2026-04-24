@@ -9,7 +9,7 @@ const FEATURES = [
   },
   {
     title: "Farm fresh quality",
-    description: "The original Gourmet Haven tone stays intact: fresh ingredients, premium presentation, and fast delivery.",
+    description: "The original QuickDyne tone stays intact: fresh ingredients, premium presentation, and fast delivery.",
     image: legacyAssets.featureChef
   },
   {
@@ -24,7 +24,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0f1115] text-white">
       <header className="fixed inset-x-0 top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-          <div className="text-2xl font-bold tracking-wide text-[#01de1a]">Gourmet Haven</div>
+          <div className="text-2xl font-bold tracking-wide text-[#01de1a]">QuickDyne</div>
           <div className="hidden items-center gap-4 md:flex">
             <Link
               to="/login"
@@ -102,7 +102,7 @@ export default function LandingPage() {
           <div>
             <h2 className="text-4xl font-semibold text-white">A Culinary Journey</h2>
             <p className="mt-5 max-w-xl text-base leading-8 text-slate-300">
-              Gourmet Haven keeps the rich, premium feel of the original project while moving the platform to React,
+              QuickDyne keeps the rich, premium feel of the original project while moving the platform to React,
               Express, Supabase, Razorpay, and Cloudinary. The product direction changes, but the brand mood stays the same.
             </p>
             <Link
@@ -123,9 +123,9 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-white/5 bg-[#0a0b0e] px-4 py-12 text-center sm:px-6 lg:px-8">
-        <h3 className="text-2xl font-semibold text-[#01de1a]">Gourmet Haven</h3>
+        <h3 className="text-2xl font-semibold text-[#01de1a]">QuickDyne</h3>
         <p className="mt-2 text-slate-400">Taste the perfection.</p>
-        <p className="mt-6 text-sm text-slate-500">&copy; 2026 Gourmet Haven. All rights reserved.</p>
+        <p className="mt-6 text-sm text-slate-500">&copy; 2026 QuickDyne. All rights reserved.</p>
       </footer>
     </div>
   );
