@@ -1,4 +1,4 @@
-# Gourmet Haven Workspace
+# QuickDyne Workspace
 
 The active application now lives inside `QuickDyne/`.
 
