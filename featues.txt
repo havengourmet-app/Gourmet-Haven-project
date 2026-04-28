@@ -1,0 +1,159 @@
+Phase 1 - Foundation (Completed)
+
+This phase focused on building the core system and infrastructure.
+
+1. Full Stack Setup
+Frontend built using React (Vite, Tailwind, Router, Zustand)
+Backend powered by Express with security middleware (Helmet, CORS, Morgan)
+Database structured using Supabase PostgreSQL
+UUID-based schema with proper monetary handling (paise format)
+Row Level Security (RLS) applied across all tables
+2. Authentication System
+User signup and login via Supabase Auth
+Automatic profile creation on registration
+Role-based routing for different dashboards
+Secure protected routes
+3. Real-Time Order System
+Customers can track live order status
+Restaurant owners manage orders (accept, prepare, cancel)
+Delivery partners handle pickup and delivery
+Real-time updates powered by Supabase
+4. Owner Dashboard
+Restaurant creation for new owners
+Menu management (add/edit items)
+Ownership validation for all operations
+Subscription panel integrated
+
+--------------------------------------------------------------------------------------------
+
+Phase 2 - Core Business Features (Current Focus)
+
+This phase builds the actual business logic that makes the platform usable.
+
+1. Subscription System (Razorpay)
+Create subscription plans (Starter, Growth, Pro)
+Backend API to create subscriptions
+Integrate Razorpay checkout in frontend
+Handle webhook events (activation & cancellation)
+Verify webhook security
+Display plan details and billing info in dashboard
+
+2. Image Upload System (Cloudinary)
+Configure upload presets
+Upload images from frontend
+Preview before saving
+Store image URLs in database
+Display images in UI
+
+3. Customer Discovery (Home Page)
+Filter restaurants by location
+Show only active restaurants
+Search by name and cuisine
+Display key info (rating, delivery time, etc.)
+Add loading states and empty results UI
+
+4. Cart and Order Flow
+Add items to cart from menu
+Prevent mixing items from different restaurants
+Show cart summary with pricing
+Minimum order validation
+Save complete order snapshot
+Redirect to order tracking page
+Display order status progression
+
+---------------------------------------------------------------------------------------------
+
+Phase 3 — User Experience Improvements
+
+This phase enhances usability and polish.
+
+1. Profile System
+Order history
+Address management
+Profile editing (name, phone, avatar)
+2. Restaurant Menu Page
+Detailed restaurant view
+Categorized menu items
+Veg/Non-veg filters
+Sticky cart summary
+3. Ratings & Reviews
+Post-delivery rating system
+Store reviews in database
+Automatically calculate average rating
+Display ratings on restaurant cards
+4. Owner Analytics
+Orders overview (daily/weekly/monthly)
+Revenue tracking
+Most popular items
+Order status breakdown
+
+---------------------------------------------------------------------------------------------------
+
+
+Phase 4 - Production Readiness
+
+This phase prepares the app for real users.
+
+1. Deployment
+Frontend hosted on Vercel
+Backend hosted on Railway
+Environment variables configured
+Webhooks and APIs properly connected
+Custom domain setup
+
+2. Security
+Review all RLS policies
+Add rate limiting
+Validate inputs (Zod/Joi)
+Protect sensitive keys
+Verify payment signatures
+
+3. Error Handling
+Global error boundaries
+Consistent API error responses
+Handle network failures
+Payment retry options
+Order cancellation flows
+
+------------------------------------------------------------------------------------------------------
+
+Phase 5 - Growth Features (Post Launch)
+
+These features help scale and improve engagement.
+
+1. Notifications
+WhatsApp alerts for orders
+Real-time updates for customers and owners
+
+
+2. Maps & Delivery
+Restaurant location via Google Maps
+Delivery radius filtering
+Live delivery tracking
+
+
+3. Admin Panel
+Approve/reject restaurants
+Manage subscriptions and revenue
+Handle disputes
+Control restaurant status
+
+
+4. Progressive Web App (PWA)
+Installable app experience
+Offline support
+Push notifications
+Final Direction
+
+-------------------------------------------------------------------------------------
+
+The roadmap follows a clear progression:
+
+Foundation → Business Logic → User Experience → Production → Growth
+
+Right now, our priority should be:
+
+Payments
+Images
+Discovery
+Order flow

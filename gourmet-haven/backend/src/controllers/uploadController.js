@@ -1,29 +1,56 @@
 import { cloudinary, hasCloudinaryConfig } from "../config/cloudinary.js";
 
-export async function createUploadSignature(req, res) {
+const DEFAULT_UPLOAD_FOLDER = "gourmet-haven/uploads";
+
+function uploadBufferToCloudinary(buffer, options = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      if (!result?.secure_url) {
+        reject(new Error("Cloudinary did not return a secure image URL."));
+        return;
+      }
+
+      resolve(result);
+    });
+
+    stream.end(buffer);
+  });
+}
+
+export async function uploadImage(req, res) {
   if (!hasCloudinaryConfig) {
     return res.status(503).json({
-      success: false,
-      message: "Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file."
+      error: "Upload failed",
+      message:
+        "Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your backend .env file."
     });
   }
 
-  const folder    = req.body.folder || "gourmet-haven/menu-items";
-  const timestamp = Math.round(Date.now() / 1000);
+  if (!req.file?.buffer) {
+    return res.status(400).json({
+      error: "Upload failed",
+      message: "Please choose an image file to upload."
+    });
+  }
 
-  const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder },
-    process.env.CLOUDINARY_API_SECRET
-  );
+  try {
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: DEFAULT_UPLOAD_FOLDER,
+      resource_type: "image"
+    });
 
-  res.json({
-    success: true,
-    data: {
-      signature,
-      timestamp,
-      folder,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey:    process.env.CLOUDINARY_API_KEY
-    }
-  });
+    return res.status(201).json({
+      secure_url: result.secure_url
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Upload failed",
+      message: error.message || "Unable to upload the image right now."
+    });
+  }
 }

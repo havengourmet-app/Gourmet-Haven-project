@@ -14,7 +14,7 @@ The workspace is scaffolded and running with:
 - Realtime order lifecycle across customer, owner, and delivery workflows
 - Legacy theme preservation through reused visual assets and the original green-on-dark brand language
 
-Major milestone history now lives in `progress.md`.
+Major milestone history lives in `progress.md`. A senior-friendly feature and future-scope overview lives in `feture_tracker.md`.
 
 ## Tech stack
 
@@ -59,6 +59,7 @@ gourmet-haven/
 |   `-- migrations/
 |       `-- 0001_initial_schema.sql
 |-- README.md
+|-- feture_tracker.md
 `-- progress.md
 ```
 

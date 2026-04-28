@@ -6,9 +6,9 @@ const SAMPLE_ORDERS = [
   {
     id: "c13e8239-85fd-49e9-ac51-a01b992fe930",
     status: "pending",
-    total_paise: 33700,
+    total_paise: 13000,
     city: "Hyderabad",
-    items: [{ quantity: 2 }],
+    items: [{ qty: 1, price: 10000 }],
     restaurant: {
       name: "Paradise Signature",
       city: "Hyderabad"
@@ -32,7 +32,7 @@ const ORDER_SELECT = `
   city,
   created_at,
   updated_at,
-  restaurant:restaurants(id, name, city),
+  restaurant:restaurants(id, name, city, locality, logo_url),
   delivery_address:addresses(id, label, locality, line_1, pincode)
 `;
 
@@ -48,11 +48,59 @@ const TRANSITIONS = {
   cancelled: new Set()
 };
 
+function parseDeliveryAddressSnapshot(notes) {
+  if (!notes) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(notes);
+    const address = parsed?.delivery_address;
+
+    if (!address?.full_address) {
+      return null;
+    }
+
+    return {
+      full_address: address.full_address,
+      locality: address.locality || null,
+      lat: typeof address.lat === "number" ? address.lat : null,
+      lng: typeof address.lng === "number" ? address.lng : null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function toRelatedDeliveryAddress(deliveryAddress) {
+  if (!deliveryAddress) {
+    return null;
+  }
+
+  const fullAddress = [deliveryAddress.line_1, deliveryAddress.locality, deliveryAddress.pincode]
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    ...deliveryAddress,
+    full_address: fullAddress || deliveryAddress.line_1 || null
+  };
+}
+
+function getDecoratedDeliveryAddress(order) {
+  if (order?.delivery_address) {
+    return toRelatedDeliveryAddress(order.delivery_address);
+  }
+
+  return parseDeliveryAddressSnapshot(order?.notes);
+}
+
 function decorateOrder(order) {
   return {
     ...order,
+    delivery_address: getDecoratedDeliveryAddress(order),
     item_count: Array.isArray(order?.items)
-      ? order.items.reduce((count, item) => count + Number(item.quantity || 0), 0)
+      ? order.items.reduce((count, item) => count + Number(item.qty || item.quantity || 0), 0)
       : 0
   };
 }
@@ -67,6 +115,27 @@ function isAllowedTransition(currentStatus, nextStatus) {
   }
 
   return TRANSITIONS[currentStatus]?.has(nextStatus) || false;
+}
+
+function normalizeOrderItems(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => {
+      const quantity = Number(item.qty ?? item.quantity ?? 0);
+
+      return {
+        id: item.id,
+        name: item.name,
+        price: Number(item.price ?? item.pricePaise ?? 0),
+        qty: quantity,
+        quantity,
+        image_url: item.image_url || item.imageUrl || null
+      };
+    })
+    .filter((item) => item.id && item.name && Number.isFinite(item.price) && item.price >= 0 && item.qty > 0);
 }
 
 async function assertOwnerCanManageOrder(profileId, restaurantId) {
@@ -100,6 +169,22 @@ async function fetchOrderForUpdate(orderId) {
   return data;
 }
 
+async function fetchActiveRestaurantForOrder(restaurantId) {
+  const { data, error } = await supabaseAdmin
+    .from("restaurants")
+    .select("id, name, city, is_active")
+    .eq("id", restaurantId)
+    .single();
+
+  if (error || !data || !data.is_active) {
+    const restaurantError = new Error("Restaurant not found or is not currently available.");
+    restaurantError.statusCode = 400;
+    throw restaurantError;
+  }
+
+  return data;
+}
+
 export async function listCustomerOrders(req, res) {
   if (!supabaseAdmin) {
     return res.json({
@@ -121,6 +206,34 @@ export async function listCustomerOrders(req, res) {
   res.json({
     success: true,
     data: decorateOrders(data)
+  });
+}
+
+export async function fetchOrder(req, res) {
+  if (!supabaseAdmin) {
+    const sampleOrder = decorateOrder(SAMPLE_ORDERS[0]);
+
+    return res.json({
+      order: sampleOrder.id === req.params.orderId ? sampleOrder : null
+    });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("orders")
+    .select(ORDER_SELECT)
+    .eq("id", req.params.orderId)
+    .eq("customer_id", req.user.id)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({
+      success: false,
+      message: "Order not found."
+    });
+  }
+
+  res.json({
+    order: decorateOrder(data)
   });
 }
 
@@ -192,50 +305,108 @@ export async function listDeliveryOrders(req, res) {
 }
 
 export async function createOrder(req, res) {
-  assertPaise(req.body.subtotalPaise, "subtotalPaise");
-  assertPaise(req.body.deliveryFeePaise, "deliveryFeePaise");
-  assertPaise(req.body.platformFeePaise, "platformFeePaise");
-  assertPaise(req.body.totalPaise, "totalPaise");
+  const restaurantId = req.body.restaurant_id || req.body.restaurantId;
+  const subtotalPaise = req.body.subtotal ?? req.body.subtotalPaise;
+  const deliveryFeePaise = req.body.delivery_fee ?? req.body.deliveryFeePaise;
+  const platformFeePaise = req.body.platform_fee ?? req.body.platformFeePaise ?? 0;
+  const totalPaise = req.body.total ?? req.body.totalPaise;
+  const deliveryAddress = req.body.delivery_address || req.body.deliveryAddress || null;
+  const normalizedItems = normalizeOrderItems(req.body.items);
 
-  if (!req.body.restaurantId) {
+  if (!restaurantId) {
     return res.status(400).json({
       success: false,
-      message: "restaurantId is required to place an order."
+      message: "restaurant_id is required to place an order."
     });
   }
 
-  const payload = {
-    id: randomUUID(),
-    customer_id: req.user.id,
-    restaurant_id: req.body.restaurantId,
-    delivery_address_id: req.body.deliveryAddressId || null,
-    items: req.body.items || [],
-    subtotal_paise: req.body.subtotalPaise,
-    delivery_fee_paise: req.body.deliveryFeePaise,
-    platform_fee_paise: req.body.platformFeePaise,
-    total_paise: req.body.totalPaise,
-    status: "pending",
-    notes: req.body.notes || "",
-    city: req.body.city || "Hyderabad"
+  if (normalizedItems.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Add at least one item before placing an order."
+    });
+  }
+
+  if (!deliveryAddress?.full_address?.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "A delivery address is required."
+    });
+  }
+
+  assertPaise(subtotalPaise, "subtotal");
+  assertPaise(deliveryFeePaise, "delivery_fee");
+  assertPaise(platformFeePaise, "platform_fee");
+  assertPaise(totalPaise, "total");
+
+  if (Number(totalPaise) < 10000) {
+    return res.status(400).json({
+      success: false,
+      message: "Minimum order value is Rs 100."
+    });
+  }
+
+  const deliveryAddressSnapshot = {
+    full_address: deliveryAddress.full_address.trim(),
+    lat: typeof deliveryAddress.lat === "number" ? deliveryAddress.lat : null,
+    lng: typeof deliveryAddress.lng === "number" ? deliveryAddress.lng : null
   };
 
   if (!supabaseAdmin) {
+    const payload = {
+      id: randomUUID(),
+      customer_id: req.user.id,
+      restaurant_id: restaurantId,
+      delivery_address_id: null,
+      items: normalizedItems,
+      subtotal_paise: subtotalPaise,
+      delivery_fee_paise: deliveryFeePaise,
+      platform_fee_paise: platformFeePaise,
+      total_paise: totalPaise,
+      status: "pending",
+      notes: JSON.stringify({ delivery_address: deliveryAddressSnapshot }),
+      city: "Hyderabad",
+      created_at: new Date().toISOString()
+    };
+
     return res.status(201).json({
-      success: true,
-      data: decorateOrder(payload),
-      message: "Order was validated. Configure Supabase to persist and broadcast it."
+      order: {
+        id: payload.id,
+        status: payload.status,
+        total_paise: payload.total_paise,
+        created_at: payload.created_at
+      }
     });
   }
 
-  const { data, error } = await supabaseAdmin.from("orders").insert(payload).select().single();
+  const restaurant = await fetchActiveRestaurantForOrder(restaurantId);
+  const payload = {
+    id: randomUUID(),
+    customer_id: req.user.id,
+    restaurant_id: restaurantId,
+    delivery_address_id: null,
+    items: normalizedItems,
+    subtotal_paise: subtotalPaise,
+    delivery_fee_paise: deliveryFeePaise,
+    platform_fee_paise: platformFeePaise,
+    total_paise: totalPaise,
+    status: "pending",
+    notes: JSON.stringify({ delivery_address: deliveryAddressSnapshot }),
+    city: restaurant.city || "Hyderabad"
+  };
+
+  const { data, error } = await supabaseAdmin
+    .from("orders")
+    .insert(payload)
+    .select("id, status, total_paise, created_at")
+    .single();
 
   if (error) {
     throw error;
   }
 
   res.status(201).json({
-    success: true,
-    data: decorateOrder(data)
+    order: data
   });
 }
 

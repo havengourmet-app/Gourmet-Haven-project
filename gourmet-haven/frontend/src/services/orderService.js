@@ -15,13 +15,30 @@ export async function listDeliveryOrders() {
   return response?.data || response;
 }
 
-export async function createOrder(payload) {
-  const response = await apiRequest("/orders", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+export async function placeOrder(orderData) {
+  try {
+    const response = await apiRequest("/orders", {
+      method: "POST",
+      body: JSON.stringify(orderData)
+    });
 
-  return response?.data || response;
+    return response?.order || null;
+  } catch (error) {
+    throw new Error(error.message || "Unable to place the order right now.");
+  }
+}
+
+export async function fetchOrder(orderId) {
+  try {
+    const response = await apiRequest(`/orders/${orderId}`);
+    return response?.order || null;
+  } catch (error) {
+    throw new Error(error.message || "Unable to load the order right now.");
+  }
+}
+
+export async function createOrder(payload) {
+  return placeOrder(payload);
 }
 
 export async function updateOrderStatus(orderId, payload) {

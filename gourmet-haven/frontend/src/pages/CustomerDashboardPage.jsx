@@ -1,90 +1,152 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Shell from "../components/common/Shell";
+import LocalityFilter from "../components/customer/LocalityFilter";
 import RestaurantCard from "../components/customer/RestaurantCard";
-import { legacyAssets } from "../lib/legacyAssets";
-import { listRestaurants } from "../services/restaurantService";
+import SearchBar from "../components/customer/SearchBar";
+import { fetchLocalities, fetchRestaurants } from "../services/restaurantService";
 import { useUiStore } from "../store/uiStore";
 
-const FALLBACK_RESTAURANTS = [
-  {
-    id: "d178fe1b-2ed8-4d6e-a0d5-56d44ac8ea01",
-    name: "Paradise Signature",
-    cuisine: "Biryani, Kebabs, Andhra",
-    rating: "4.7",
-    deliveryTime: "28 mins",
-    minimumOrderLabel: "Min Rs 199",
-    discountLabel: "50% OFF",
-    image: legacyAssets.paradise
-  },
-  {
-    id: "db2914c8-425e-4a3f-88a3-f6609cc5f2cb",
-    name: "Absolute Barbecues",
-    cuisine: "BBQ, Grills, Continental",
-    rating: "4.4",
-    deliveryTime: "22 mins",
-    minimumOrderLabel: "Min Rs 149",
-    discountLabel: "40% OFF",
-    image: legacyAssets.absoluteBarbecues
-  },
-  {
-    id: "74ee5abf-7b8d-4fd9-aadc-3946f9528830",
-    name: "Mehfil Restaurant",
-    cuisine: "Shawarma, Haleem, Rolls",
-    rating: "4.5",
-    deliveryTime: "34 mins",
-    minimumOrderLabel: "Min Rs 179",
-    discountLabel: "30% OFF",
-    image: legacyAssets.mehfil
-  }
-];
+function RestaurantCardSkeleton({ index }) {
+  return (
+    <div key={`restaurant-skeleton-${index}`} className="card-surface overflow-hidden animate-pulse">
+      <div className="h-40 w-full bg-slate-200" />
+      <div className="px-5 pb-5 pt-10">
+        <div className="h-14 w-14 -translate-y-1/2 rounded-full border-4 border-white bg-slate-200 shadow-md" />
+        <div className="-mt-2 space-y-3">
+          <div className="h-5 w-2/3 rounded bg-slate-200" />
+          <div className="h-4 w-1/3 rounded bg-slate-200" />
+          <div className="h-4 w-1/2 rounded bg-slate-200" />
+          <div className="h-4 w-5/6 rounded bg-slate-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CustomerDashboardPage() {
   const navigate = useNavigate();
   const activeCity = useUiStore((state) => state.activeCity);
-  const [restaurants, setRestaurants] = useState(FALLBACK_RESTAURANTS);
-  const [status, setStatus] = useState("loading");
+  const lastAppliedFilterKeyRef = useRef("__all__");
+  const [restaurants, setRestaurants] = useState([]);
+  const [localities, setLocalities] = useState([]);
+  const [selectedLocality, setSelectedLocality] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retryToken, setRetryToken] = useState(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+    }, 400);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     let isMounted = true;
+    setInitialLoadComplete(false);
 
-    async function loadRestaurants() {
+    async function loadInitialDiscovery() {
+      setLoading(true);
+      setError("");
+
       try {
-        const data = await listRestaurants();
+        const [nextLocalities, nextRestaurants] = await Promise.all([
+          fetchLocalities(),
+          fetchRestaurants("", "")
+        ]);
 
-        if (isMounted && Array.isArray(data?.data) && data.data.length > 0) {
-          setRestaurants(
-            data.data.map((restaurant, index) => ({
-              ...restaurant,
-              image:
-                restaurant.image ||
-                FALLBACK_RESTAURANTS[index % FALLBACK_RESTAURANTS.length].image,
-              discountLabel:
-                restaurant.discountLabel ||
-                FALLBACK_RESTAURANTS[index % FALLBACK_RESTAURANTS.length].discountLabel
-            }))
-          );
+        if (!isMounted) {
+          return;
         }
-      } catch {
-        return;
+
+        setLocalities(Array.isArray(nextLocalities) ? nextLocalities : []);
+        setRestaurants(Array.isArray(nextRestaurants) ? nextRestaurants : []);
+        lastAppliedFilterKeyRef.current = "__all__";
+        setInitialLoadComplete(true);
+      } catch (loadError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setLocalities([]);
+        setRestaurants([]);
+        setError(loadError.message || "Unable to load restaurant discovery right now.");
       } finally {
         if (isMounted) {
-          setStatus("ready");
+          setLoading(false);
         }
       }
     }
 
-    loadRestaurants();
+    loadInitialDiscovery();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [retryToken]);
+
+  useEffect(() => {
+    if (!initialLoadComplete) {
+      return;
+    }
+
+    const filterKey = `${selectedLocality}__${debouncedSearchQuery}`;
+
+    if (filterKey === lastAppliedFilterKeyRef.current) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadFilteredRestaurants() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const nextRestaurants = await fetchRestaurants(selectedLocality, debouncedSearchQuery);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRestaurants(Array.isArray(nextRestaurants) ? nextRestaurants : []);
+        lastAppliedFilterKeyRef.current = filterKey;
+      } catch (loadError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setRestaurants([]);
+        setError(loadError.message || "Unable to load restaurant discovery right now.");
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadFilteredRestaurants();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearchQuery, initialLoadComplete, selectedLocality]);
+
+  function handleRetry() {
+    setRetryToken((current) => current + 1);
+  }
 
   return (
     <Shell
       title={`Discover the best of ${activeCity}`}
-      subtitle="Browse subscription-backed restaurants with predictable pricing, live order tracking, and the same clean Gourmet Haven dashboard feel you already built."
+      subtitle="Search restaurants, browse by locality, and open live menus without leaving the customer dashboard flow."
       actions={
         <button
           type="button"
@@ -95,64 +157,76 @@ export default function CustomerDashboardPage() {
         </button>
       }
     >
-      <section className="rounded-[1.5rem] bg-gradient-to-r from-[#01de1a] to-[#00b514] px-8 py-12 text-white">
-        <h2 className="text-4xl font-bold">What are you craving today?</h2>
-        <p className="mt-3 max-w-2xl text-base text-white/90">
-          Order from the best restaurants near you while keeping the original Gourmet Haven bright, clean dashboard style.
+      <section className="card-surface p-6">
+        <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Search and discover</p>
+        <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">Find a restaurant near you</h2>
+        <p className="mt-2 text-sm leading-7 text-slate-500">
+          Search by restaurant name or narrow the list to a specific Hyderabad locality.
         </p>
-      </section>
 
-      <section className="grid gap-6 md:grid-cols-3">
-        {[
-          { name: "Biryani", image: legacyAssets.showcase },
-          { name: "Chicken", image: legacyAssets.chicken },
-          { name: "Shawarma", image: legacyAssets.shawarma }
-        ].map((category) => (
-          <article key={category.name} className="card-surface overflow-hidden">
-            <img src={category.image} alt={category.name} className="h-44 w-full object-cover" />
-            <div className="p-4 text-center text-lg font-semibold text-[#1a1a1a]">{category.name}</div>
-          </article>
-        ))}
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="card-surface p-6">
-          <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Why customers stay</p>
-          <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">Reliable delivery without restaurant markups</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-            Gourmet Haven is built around fixed subscription revenue for owners, which means restaurants do not need to
-            inflate prices to offset commission-heavy platforms.
-          </p>
+        <div className="mt-6">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
         </div>
-        <div className="card-surface p-6">
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Platform status</p>
-          <div className="mt-4 space-y-3 text-sm text-slate-500">
-            <p>Realtime orders: connected</p>
-            <p>Payments: Razorpay subscriptions ready for owner onboarding</p>
-            <p>Media: Cloudinary upload flow reserved in service layer</p>
-          </div>
+
+        <div className="mt-4">
+          <LocalityFilter
+            localities={localities}
+            selectedLocality={selectedLocality}
+            onSelect={setSelectedLocality}
+          />
         </div>
       </section>
 
       <section className="space-y-4">
-        <div>
-          <h2 className="section-title">Featured restaurants</h2>
-          <p className="muted-copy mt-2">
-            {status === "loading"
-              ? "Loading restaurants..."
-              : "Fallback sample data now uses your existing restaurant imagery until the backend is fully wired."}
-          </p>
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="section-title">Restaurants</h2>
+            <p className="muted-copy mt-2">
+              {loading
+                ? "Loading restaurants..."
+                : error
+                  ? "Restaurant discovery hit a problem."
+                  : restaurants.length === 0
+                    ? "No restaurants found in this area yet"
+                    : `${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"} available`}
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {restaurants.map((restaurant) => (
-            <RestaurantCard
-              key={restaurant.id}
-              restaurant={restaurant}
-              onBrowse={(restaurant) => navigate(`/orders?restaurantId=${restaurant.id}`)}
-            />
-          ))}
-        </div>
+        {error ? (
+          <div className="card-surface p-6">
+            <p className="text-sm text-rose-700">{error}</p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="mt-4 rounded-xl bg-[#01de1a] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
+            >
+              Retry
+            </button>
+          </div>
+        ) : loading ? (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <RestaurantCardSkeleton key={`skeleton-card-${index}`} index={index} />
+            ))}
+          </div>
+        ) : restaurants.length === 0 ? (
+          <div className="card-surface p-6 text-sm leading-7 text-slate-500">
+            No restaurants found in this area yet
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {restaurants.map((restaurant) => (
+              <RestaurantCard
+                key={restaurant.id}
+                restaurant={restaurant}
+                onBrowse={(selectedRestaurant) =>
+                  navigate(`/orders?restaurantId=${selectedRestaurant.id}`)
+                }
+              />
+            ))}
+          </div>
+        )}
       </section>
     </Shell>
   );

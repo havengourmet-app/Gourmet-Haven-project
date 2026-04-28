@@ -78,7 +78,7 @@ export async function createMenuItem(req, res) {
     price_paise: req.body.pricePaise,
     is_veg: Boolean(req.body.isVeg),
     is_available: true,
-    image_url: req.body.imageUrl || null
+    image_url: req.body.image_url ?? req.body.imageUrl ?? null
   };
 
   if (!supabaseAdmin) {
@@ -126,7 +126,9 @@ export async function updateMenuItem(req, res) {
     ...(typeof req.body.pricePaise !== "undefined" ? { price_paise: req.body.pricePaise } : {}),
     ...(typeof req.body.isVeg !== "undefined" ? { is_veg: req.body.isVeg } : {}),
     ...(typeof req.body.isAvailable !== "undefined" ? { is_available: req.body.isAvailable } : {}),
-    ...(typeof req.body.imageUrl !== "undefined" ? { image_url: req.body.imageUrl } : {})
+    ...(typeof req.body.image_url !== "undefined" || typeof req.body.imageUrl !== "undefined"
+      ? { image_url: req.body.image_url ?? req.body.imageUrl ?? null }
+      : {})
   };
 
   const { data, error } = await supabaseAdmin

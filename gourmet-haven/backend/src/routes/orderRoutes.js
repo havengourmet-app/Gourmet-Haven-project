@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createOrder,
+  fetchOrder,
   listCustomerOrders,
   listDeliveryOrders,
   listOwnerOrders,
@@ -15,6 +16,7 @@ const router = Router();
 router.get("/customer", requireAuth, requireRole("customer"), asyncHandler(listCustomerOrders));
 router.get("/owner", requireAuth, requireRole("owner"), asyncHandler(listOwnerOrders));
 router.get("/delivery", requireAuth, requireRole("delivery"), asyncHandler(listDeliveryOrders));
+router.get("/:orderId", requireAuth, asyncHandler(fetchOrder));
 router.post("/", requireAuth, requireRole("customer"), asyncHandler(createOrder));
 router.patch(
   "/:orderId/status",

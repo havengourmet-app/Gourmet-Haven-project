@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import OrderStatusBadge from "../components/common/OrderStatusBadge";
 import Shell from "../components/common/Shell";
 import StatCard from "../components/common/StatCard";
-import OwnerMenuManager from "../components/owner/OwnerMenuManager";
+import OwnerMenuManager, { ImageUploader } from "../components/owner/OwnerMenuManager";
 import SubscriptionBanner from "../components/owner/SubscriptionBanner";
 import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
 import {
@@ -19,6 +19,7 @@ import {
   createRestaurant,
   listMenuItems,
   listOwnerRestaurants,
+  updateRestaurant,
   updateMenuItem
 } from "../services/restaurantService";
 import { createSubscriptionCheckout, getSubscriptionStatus } from "../services/subscriptionService";
@@ -27,9 +28,23 @@ const EMPTY_RESTAURANT_FORM = {
   name: "",
   city: "Hyderabad",
   cuisineSummary: "",
-  logoUrl: "",
-  coverImageUrl: ""
+  logo_url: null,
+  cover_image_url: null
 };
+
+function toRestaurantFormValues(restaurant) {
+  if (!restaurant) {
+    return EMPTY_RESTAURANT_FORM;
+  }
+
+  return {
+    name: restaurant.name || "",
+    city: restaurant.city || "Hyderabad",
+    cuisineSummary: restaurant.cuisine_summary || restaurant.cuisineSummary || "",
+    logo_url: restaurant.logo_url || null,
+    cover_image_url: restaurant.cover_image_url || null
+  };
+}
 
 function normalizeSubscription(subscription) {
   if (!subscription) {
@@ -59,10 +74,13 @@ export default function OwnerDashboardPage() {
   const [subscriptionReady, setSubscriptionReady] = useState(false);
   const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(false);
   const [restaurantForm, setRestaurantForm] = useState(EMPTY_RESTAURANT_FORM);
+  const [isCreatingRestaurant, setIsCreatingRestaurant] = useState(false);
   const [subscriptionPlanId, setSubscriptionPlanId] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
   const [busyOrderId, setBusyOrderId] = useState(null);
   const [isRestaurantSubmitting, setIsRestaurantSubmitting] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [isMenuSubmitting, setIsMenuSubmitting] = useState(false);
   const [isSubscriptionSubmitting, setIsSubscriptionSubmitting] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState("");
@@ -84,6 +102,8 @@ export default function OwnerDashboardPage() {
     () => menuItems.filter((item) => item.is_available).length,
     [menuItems]
   );
+  const isRestaurantImageUploading = isLogoUploading || isCoverUploading;
+  const isEditingRestaurant = Boolean(selectedRestaurant?.id) && !isCreatingRestaurant;
   const subscriptionView = normalizeSubscription(subscription);
 
   useEffect(() => {
@@ -175,6 +195,17 @@ export default function OwnerDashboardPage() {
     };
   }, [selectedRestaurantId, refreshToken]);
 
+  useEffect(() => {
+    if (!selectedRestaurant) {
+      setRestaurantForm(EMPTY_RESTAURANT_FORM);
+      return;
+    }
+
+    if (!isCreatingRestaurant) {
+      setRestaurantForm(toRestaurantFormValues(selectedRestaurant));
+    }
+  }, [isCreatingRestaurant, selectedRestaurant]);
+
   useRealtimeOrders({
     enabled: true,
     onOrderChange: () => {
@@ -200,27 +231,59 @@ export default function OwnerDashboardPage() {
     }
   }
 
-  async function handleCreateRestaurant(event) {
+  async function handleSaveRestaurant(event) {
     event.preventDefault();
     setRestaurantNotice("");
+
+    if (isRestaurantImageUploading) {
+      setRestaurantNotice("Please wait for the image upload to finish.");
+      return;
+    }
+
     setIsRestaurantSubmitting(true);
 
-    try {
-      const createdRestaurant = await createRestaurant({
-        name: restaurantForm.name.trim(),
-        city: restaurantForm.city.trim() || "Hyderabad",
-        cuisineSummary: restaurantForm.cuisineSummary.trim()
-      });
+    const payload = {
+      name: restaurantForm.name.trim(),
+      city: restaurantForm.city.trim() || "Hyderabad",
+      cuisineSummary: restaurantForm.cuisineSummary.trim(),
+      logo_url: restaurantForm.logo_url || null,
+      cover_image_url: restaurantForm.cover_image_url || null
+    };
 
-      setRestaurants((current) => [createdRestaurant, ...current]);
-      setSelectedRestaurantId(createdRestaurant.id);
-      setRestaurantForm(EMPTY_RESTAURANT_FORM);
-      setRestaurantNotice(`Restaurant profile created for ${createdRestaurant.name}.`);
+    try {
+      if (isEditingRestaurant) {
+        const updatedRestaurant = await updateRestaurant(selectedRestaurant.id, payload);
+        setRestaurants((current) =>
+          current.map((restaurant) =>
+            restaurant.id === updatedRestaurant.id ? updatedRestaurant : restaurant
+          )
+        );
+        setRestaurantForm(toRestaurantFormValues(updatedRestaurant));
+        setRestaurantNotice(`Saved changes for ${updatedRestaurant.name}.`);
+      } else {
+        const createdRestaurant = await createRestaurant(payload);
+        setRestaurants((current) => [createdRestaurant, ...current]);
+        setSelectedRestaurantId(createdRestaurant.id);
+        setIsCreatingRestaurant(false);
+        setRestaurantNotice(`Restaurant profile created for ${createdRestaurant.name}.`);
+      }
     } catch (error) {
       setRestaurantNotice(error.message);
     } finally {
       setIsRestaurantSubmitting(false);
     }
+  }
+
+  function handleStartCreateRestaurant() {
+    setIsCreatingRestaurant(true);
+    setRestaurantForm(EMPTY_RESTAURANT_FORM);
+    setRestaurantNotice("");
+  }
+
+  function handleCancelCreateRestaurant() {
+    setIsCreatingRestaurant(false);
+    setRestaurantNotice("");
+    setRestaurantForm(toRestaurantFormValues(selectedRestaurant));
   }
 
   async function handleCreateMenuItem(payload) {
@@ -394,18 +457,22 @@ export default function OwnerDashboardPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Restaurant setup</p>
             <h2 className="mt-2 text-2xl font-semibold text-[#1a1a1a]">Owner location profile</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-              Create the first restaurant profile for this owner account, then switch between owned restaurants and manage each menu separately.
-            </p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+                Create the first restaurant profile for this owner account, then switch between owned restaurants and update each one from the same form.
+              </p>
           </div>
 
           {restaurants.length > 0 ? (
-            <div className="min-w-[240px]">
+            <div className="flex min-w-[240px] flex-col gap-3">
               <label className="block">
                 <span className="mb-2 block text-sm text-slate-500">Active restaurant</span>
                 <select
                   value={selectedRestaurantId}
-                  onChange={(event) => setSelectedRestaurantId(event.target.value)}
+                  onChange={(event) => {
+                    setSelectedRestaurantId(event.target.value);
+                    setIsCreatingRestaurant(false);
+                    setRestaurantNotice("");
+                  }}
                   className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
                 >
                   {restaurants.map((restaurant) => (
@@ -415,6 +482,14 @@ export default function OwnerDashboardPage() {
                   ))}
                 </select>
               </label>
+
+              <button
+                type="button"
+                onClick={handleStartCreateRestaurant}
+                className="rounded-xl border border-black/10 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
+              >
+                Create another restaurant
+              </button>
             </div>
           ) : null}
         </div>
@@ -428,28 +503,33 @@ export default function OwnerDashboardPage() {
           </div>
         ) : null}
 
-      <form onSubmit={handleCreateRestaurant} className="mt-6 grid gap-4 md:grid-cols-3">
-          <label className="block">
-          <span className="mb-2 block text-sm text-slate-500">Logo URL</span>
-          <input
-            type="url"
-            value={restaurantForm.logoUrl}
-            onChange={(event) => setRestaurantForm((current) => ({ ...current, logoUrl: event.target.value }))}
-            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-            placeholder="https://example.com/logo.jpg"
-          />
-        </label>
+        <div className="mt-6 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-slate-600">
+          {isEditingRestaurant
+            ? `Editing ${selectedRestaurant.name}. Update the logo, cover, or restaurant details and click Save changes.`
+            : "Create mode is active. Fill in the details below to add a new restaurant."}
+        </div>
 
-        <label className="block">
-          <span className="mb-2 block text-sm text-slate-500">Cover Image URL</span>
-          <input
-            type="url"
-            value={restaurantForm.coverImageUrl}
-            onChange={(event) => setRestaurantForm((current) => ({ ...current, coverImageUrl: event.target.value }))}
-            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-            placeholder="https://example.com/cover.jpg"
-          />
-          </label>
+      <form onSubmit={handleSaveRestaurant} className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:col-span-3 md:grid-cols-2">
+            <ImageUploader
+              label="Restaurant logo"
+              existingUrl={restaurantForm.logo_url}
+              onUpload={(url) =>
+                setRestaurantForm((current) => ({ ...current, logo_url: url }))
+              }
+              onUploadingChange={setIsLogoUploading}
+            />
+
+            <ImageUploader
+              label="Cover image"
+              existingUrl={restaurantForm.cover_image_url}
+              onUpload={(url) =>
+                setRestaurantForm((current) => ({ ...current, cover_image_url: url }))
+              }
+              onUploadingChange={setIsCoverUploading}
+            />
+          </div>
+
           <label className="block">
             <span className="mb-2 block text-sm text-slate-500">Restaurant name</span>
             <input
@@ -487,11 +567,29 @@ export default function OwnerDashboardPage() {
           <div className="md:col-span-3 flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={isRestaurantSubmitting}
+              disabled={isRestaurantSubmitting || isRestaurantImageUploading}
               className="rounded-xl bg-[#01de1a] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isRestaurantSubmitting ? "Saving..." : restaurants.length > 0 ? "Add another restaurant" : "Create restaurant profile"}
+              {isRestaurantImageUploading
+                ? "Uploading image..."
+                : isRestaurantSubmitting
+                  ? "Saving..."
+                  : isEditingRestaurant
+                    ? "Save changes"
+                    : restaurants.length > 0
+                      ? "Create restaurant profile"
+                      : "Create restaurant profile"}
             </button>
+
+            {isCreatingRestaurant && selectedRestaurant ? (
+              <button
+                type="button"
+                onClick={handleCancelCreateRestaurant}
+                className="rounded-xl border border-black/10 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
+              >
+                Back to selected restaurant
+              </button>
+            ) : null}
           </div>
         </form>
 

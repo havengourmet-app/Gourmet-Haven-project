@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import OrdersPage from "./pages/OrdersPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import OwnerDashboardPage from "./pages/OwnerDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import SignupPage from "./pages/SignupPage";
@@ -53,6 +54,14 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={["customer"]}>
             <OrdersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/order/:id/track"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <OrderTrackingPage />
           </ProtectedRoute>
         }
       />
