@@ -1,6 +1,6 @@
-# Gourmet Haven
+# QuickDyne
 
-Gourmet Haven is a zero-commission, subscription-based food delivery platform for Hyderabad. The project is being rebuilt as a full-stack application while preserving the visual identity and media direction from the original static prototype.
+QuickDyne is a zero-commission, subscription-based food delivery platform for Hyderabad. The project is being rebuilt as a full-stack application while preserving the visual identity and media direction from the original static prototype.
 
 ## Current status
 
@@ -30,7 +30,7 @@ Major milestone history lives in `progress.md`. A senior-friendly feature and fu
 ## Workspace layout
 
 ```text
-gourmet-haven/
+quickdyne/
 |-- frontend/
 |   |-- public/
 |   |   `-- legacy/
@@ -111,7 +111,7 @@ Database rules currently baked into the migration:
 
 ## Run locally
 
-From `gourmet-haven/`:
+From the project root:
 
 ```bash
 npm install
@@ -178,10 +178,10 @@ If you already applied the migration before the realtime work landed, rerun the 
 
 ## Working conventions
 
-- Use `gourmet-haven/` for all new implementation work
+- Use this project workspace for all new implementation work
 - Treat `../legacy-static-prototype/` as archived reference material only
 - Add only major milestones to `progress.md`
-- Keep future changes aligned with the existing Gourmet Haven visual direction unless a redesign is explicitly requested
+- Keep future changes aligned with the existing QuickDyne visual direction unless a redesign is explicitly requested
 
 
-# directory: cd "c:\Users\teju\OneDrive\Desktop\new dwsk\python\java sir project\gourmet-haven 
+# Local directory note: run commands from this project root folder.

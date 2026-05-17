@@ -1,4 +1,4 @@
-# Gourmet Haven Feature Tracker
+# QuickDyne Feature Tracker
 
 This document explains the current feature set, how each feature is technically implemented, current limitations, and future scope. It is written for review by a senior/mentor so they can quickly understand the project direction and suggest next improvements.
 
@@ -6,9 +6,9 @@ Note: The filename follows the requested name `feture_tracker.md`. If preferred 
 
 ## Project Summary
 
-Gourmet Haven is a Hyderabad-first, zero-commission food delivery platform. The business model is subscription-based for restaurant owners instead of commission-based per order.
+QuickDyne is a Hyderabad-first, zero-commission food delivery platform. The business model is subscription-based for restaurant owners instead of commission-based per order.
 
-The project has moved from a static HTML/CSS/JS prototype to a React + Express + Supabase architecture. The old static prototype is archived in `../legacy-static-prototype/`, while the active application lives in `gourmet-haven/`.
+The project has moved from a static HTML/CSS/JS prototype to a React + Express + Supabase architecture. The old static prototype is archived in `../legacy-static-prototype/`, while the active application lives in this workspace.
 
 ## Current Architecture
 
@@ -50,7 +50,7 @@ How it was achieved:
 - React app lives in `frontend/src/`.
 - Express app lives in `backend/src/`.
 - Supabase schema lives in `supabase/migrations/0001_initial_schema.sql`.
-- Root README points developers to the active `gourmet-haven/` workspace.
+- Root README points developers to the active QuickDyne workspace.
 
 Important files:
 - `package.json`
@@ -94,7 +94,7 @@ Status:
 - Implemented
 
 What it does:
-- Preserves the original Gourmet Haven visual direction inside the new React app.
+- Preserves the original QuickDyne visual direction inside the new React app.
 - Reuses the dark cinematic landing page feel, green brand accent, and existing food media.
 
 How it was achieved:

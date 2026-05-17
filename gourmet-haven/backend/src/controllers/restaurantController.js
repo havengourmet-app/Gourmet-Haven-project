@@ -202,6 +202,7 @@ export async function createRestaurant(req, res) {
     owner_id: req.profile?.id || req.user.id,
     name: req.body.name,
     city: req.body.city || "Hyderabad",
+    locality: normalizeText(req.body.locality),
     cuisine_summary: req.body.cuisineSummary || "",
     logo_url: req.body.logo_url ?? req.body.logoUrl ?? null,
     cover_image_url: req.body.cover_image_url ?? req.body.coverImageUrl ?? null,
@@ -233,6 +234,7 @@ export async function updateRestaurant(req, res) {
   const patch = {
     ...(typeof req.body.name !== "undefined" ? { name: req.body.name } : {}),
     ...(typeof req.body.city !== "undefined" ? { city: req.body.city } : {}),
+    ...(typeof req.body.locality !== "undefined" ? { locality: normalizeText(req.body.locality) } : {}),
     ...(typeof req.body.cuisineSummary !== "undefined"
       ? { cuisine_summary: req.body.cuisineSummary }
       : {}),

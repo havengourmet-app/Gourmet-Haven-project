@@ -7,7 +7,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   if (!isReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa] text-sm text-slate-600">
-        Loading Gourmet Haven...
+        Loading QuickDyne...
       </div>
     );
   }

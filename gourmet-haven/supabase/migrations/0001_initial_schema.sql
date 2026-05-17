@@ -26,15 +26,23 @@ create table if not exists public.restaurants (
   name text not null,
   slug text unique,
   city text not null default 'Hyderabad',
+  locality text not null default '',
   cuisine_summary text not null default '',
   description text not null default '',
   logo_url text,
   cover_image_url text,
+  avg_rating numeric not null default 0,
   subscription_status text not null default 'inactive' check (subscription_status in ('inactive', 'trialing', 'active', 'past_due', 'cancelled')),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.restaurants
+add column if not exists locality text not null default '';
+
+alter table public.restaurants
+add column if not exists avg_rating numeric not null default 0;
 
 create table if not exists public.menu_items (
   id uuid primary key default gen_random_uuid(),
@@ -102,6 +110,7 @@ create table if not exists public.orders (
 );
 
 create index if not exists idx_restaurants_owner_id on public.restaurants(owner_id);
+create index if not exists idx_restaurants_locality on public.restaurants(locality);
 create index if not exists idx_menu_items_restaurant_id on public.menu_items(restaurant_id);
 create index if not exists idx_addresses_profile_id on public.addresses(profile_id);
 create index if not exists idx_subscriptions_owner_id on public.subscriptions(owner_id);

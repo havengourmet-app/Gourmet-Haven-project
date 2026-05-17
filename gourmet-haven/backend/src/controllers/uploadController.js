@@ -1,6 +1,6 @@
 import { cloudinary, hasCloudinaryConfig } from "../config/cloudinary.js";
 
-const DEFAULT_UPLOAD_FOLDER = "gourmet-haven/uploads";
+const DEFAULT_UPLOAD_FOLDER = "quickdyne/uploads";
 
 function uploadBufferToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {

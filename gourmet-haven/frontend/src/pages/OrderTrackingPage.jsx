@@ -93,7 +93,7 @@ export default function OrderTrackingPage() {
           <section className="card-surface p-6">
             <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Live status</p>
             <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">
-              {order.restaurant?.name || "Gourmet Haven order"}
+              {order.restaurant?.name || "QuickDyne order"}
             </h2>
             <p className="mt-2 text-sm text-slate-500">Order ID: {order.id}</p>
 

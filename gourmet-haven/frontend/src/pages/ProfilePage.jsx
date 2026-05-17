@@ -17,7 +17,7 @@ export default function ProfilePage() {
           <div className="mt-4 flex items-center gap-4">
             <img src={legacyAssets.avatar} alt="Profile avatar" className="h-20 w-20 rounded-full object-cover" />
             <div>
-              <h2 className="text-2xl font-semibold text-[#1a1a1a]">{profile?.full_name || "Gourmet Haven User"}</h2>
+              <h2 className="text-2xl font-semibold text-[#1a1a1a]">{profile?.full_name || "QuickDyne User"}</h2>
               <div className="mt-3">
                 <RoleBadge role={profile?.role || "customer"} />
               </div>

@@ -1,4 +1,4 @@
-# Gourmet Haven Progress
+# QuickDyne Progress
 
 This file tracks major project milestones only. Small fixes, minor polish, and tiny refactors do not need to be listed here.
 
@@ -19,7 +19,7 @@ When a major feature or important architectural step lands, add a new entry at t
 - Grouped archived media assets under one `legacy-static-prototype/media/` folder
 - Grouped archived styles under `legacy-static-prototype/styles/` and scripts under `legacy-static-prototype/scripts/`
 - Updated archived prototype references so the old pages can still be opened for design comparison if needed
-- Kept the active `gourmet-haven/` React and Express workspace untouched
+- Kept the active React and Express workspace untouched
 
 Impact:
 The repository root is now cleaner, and the active project is clearly separated from legacy reference material.
@@ -60,14 +60,14 @@ The project now has a working auth foundation and a real hosted database schema 
 
 - Reused media assets from the original static prototype inside the React frontend
 - Preserved the original dark cinematic landing page direction and neon green brand accent
-- Updated the main pages and shared UI pieces so the new stack still feels like the older Gourmet Haven concept
+- Updated the main pages and shared UI pieces so the new stack still feels like the older QuickDyne concept
 
 Impact:
 The rebuild now keeps continuity with the original project identity instead of feeling like a disconnected rewrite.
 
 ### 2026-04-04 - Full-stack workspace scaffold created
 
-- Created the `gourmet-haven/` workspace with separate frontend, backend, and Supabase folders
+- Created the QuickDyne workspace with separate frontend, backend, and Supabase folders
 - Added React, Vite, Tailwind, React Router, and Zustand frontend structure
 - Added Express backend structure with routes, controllers, middleware, and configuration folders
 - Added the initial Supabase migration covering profiles, restaurants, menu items, addresses, subscriptions, and orders

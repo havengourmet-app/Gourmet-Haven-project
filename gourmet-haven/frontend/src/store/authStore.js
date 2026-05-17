@@ -14,7 +14,7 @@ function fallbackProfile(user) {
 
   return {
     id: user.id,
-    full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Gourmet User",
+    full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "QuickDyne User",
     role: user.user_metadata?.role || "customer",
     phone: user.phone || null
   };

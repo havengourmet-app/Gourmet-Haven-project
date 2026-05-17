@@ -40,7 +40,7 @@ export const supabase = isSupabaseConfigured
         autoRefreshToken: false,
         detectSessionInUrl: true,
         persistSession: true,
-        storageKey: "gourmet-haven-auth"
+        storageKey: "quickdyne-auth"
       }
     })
   : null;

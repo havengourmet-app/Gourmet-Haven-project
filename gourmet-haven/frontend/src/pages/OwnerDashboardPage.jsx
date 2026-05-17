@@ -27,6 +27,7 @@ import { createSubscriptionCheckout, getSubscriptionStatus } from "../services/s
 const EMPTY_RESTAURANT_FORM = {
   name: "",
   city: "Hyderabad",
+  locality: "",
   cuisineSummary: "",
   logo_url: null,
   cover_image_url: null
@@ -40,6 +41,7 @@ function toRestaurantFormValues(restaurant) {
   return {
     name: restaurant.name || "",
     city: restaurant.city || "Hyderabad",
+    locality: restaurant.locality || "",
     cuisineSummary: restaurant.cuisine_summary || restaurant.cuisineSummary || "",
     logo_url: restaurant.logo_url || null,
     cover_image_url: restaurant.cover_image_url || null
@@ -245,6 +247,7 @@ export default function OwnerDashboardPage() {
     const payload = {
       name: restaurantForm.name.trim(),
       city: restaurantForm.city.trim() || "Hyderabad",
+      locality: restaurantForm.locality.trim(),
       cuisineSummary: restaurantForm.cuisineSummary.trim(),
       logo_url: restaurantForm.logo_url || null,
       cover_image_url: restaurantForm.cover_image_url || null
@@ -498,6 +501,7 @@ export default function OwnerDashboardPage() {
           <div className="mt-6 rounded-3xl bg-[#f8f9fa] p-5 text-sm text-slate-500">
             <p className="font-semibold text-[#1a1a1a]">{selectedRestaurant.name}</p>
             <p className="mt-2">City: {selectedRestaurant.city || "Hyderabad"}</p>
+            <p className="mt-2">Locality: {selectedRestaurant.locality || "Not set yet"}</p>
             <p className="mt-2">Cuisine summary: {selectedRestaurant.cuisine_summary || "Add more detail in a later enhancement."}</p>
             <p className="mt-2">Subscription status: {selectedRestaurant.subscription_status || "inactive"}</p>
           </div>
@@ -550,6 +554,17 @@ export default function OwnerDashboardPage() {
               onChange={(event) => setRestaurantForm((current) => ({ ...current, city: event.target.value }))}
               className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
               placeholder="Hyderabad"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm text-slate-500">Locality</span>
+            <input
+              type="text"
+              value={restaurantForm.locality}
+              onChange={(event) => setRestaurantForm((current) => ({ ...current, locality: event.target.value }))}
+              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
+              placeholder="Madhapur"
             />
           </label>
 
