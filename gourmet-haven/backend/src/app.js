@@ -15,6 +15,8 @@ import { notFound } from "./middleware/notFound.js";
 import { hasCloudinaryConfig } from "./config/cloudinary.js";
 import { hasRazorpayConfig } from "./config/razorpay.js";
 import { hasSupabaseAdminConfig, hasSupabaseAuthConfig } from "./config/supabaseClient.js";
+import profileRoutes from "./routes/profileRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -53,6 +55,9 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/addresses", addressRoutes);
+  
 
 app.use(notFound);
 app.use(errorHandler);
