@@ -26,4 +26,4 @@ export async function deleteAddress(addressId) {
     method: "DELETE"
   });
   return response?.data || response;
-}removeEventListener
+}
