@@ -10,13 +10,15 @@ import orderRoutes from "./routes/orderRoutes.js";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { hasCloudinaryConfig } from "./config/cloudinary.js";
 import { hasRazorpayConfig } from "./config/razorpay.js";
 import { hasSupabaseAdminConfig, hasSupabaseAuthConfig } from "./config/supabaseClient.js";
-import profileRoutes from "./routes/profileRoutes.js";
-import addressRoutes from "./routes/addressRoutes.js";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -57,7 +59,8 @@ app.use("/api/delivery", deliveryRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/addresses", addressRoutes);
-  
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

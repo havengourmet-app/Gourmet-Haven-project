@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Shell from "../components/common/Shell";
 import OrderStatusStepper from "../components/customer/OrderStatusStepper";
+import RatingModal from "../components/customer/RatingModal";
 import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
 import { formatPaise } from "../lib/orderPresentation";
 import { fetchOrder } from "../services/orderService";
+import { fetchOrderReview } from "../services/reviewService";
 
 function formatAddress(order) {
   return (
@@ -20,6 +22,9 @@ export default function OrderTrackingPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -30,25 +35,30 @@ export default function OrderTrackingPage() {
 
       try {
         const nextOrder = await fetchOrder(orderId);
+        if (!isMounted) return;
 
-        if (isMounted) {
-          setOrder(nextOrder);
+        setOrder(nextOrder);
+
+        if (nextOrder?.status === "delivered") {
+          const existingReview = await fetchOrderReview(orderId);
+          if (!isMounted) return;
+
+          if (existingReview) {
+            setAlreadyReviewed(true);
+          } else {
+            setShowRatingModal(true);
+          }
         }
       } catch (loadError) {
-        if (isMounted) {
-          setOrder(null);
-          setError(loadError.message || "Unable to load the order right now.");
-        }
+        if (!isMounted) return;
+        setOrder(null);
+        setError(loadError.message || "Unable to load the order right now.");
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
-    if (orderId) {
-      loadOrder();
-    }
+    if (orderId) loadOrder();
 
     return () => {
       isMounted = false;
@@ -58,22 +68,33 @@ export default function OrderTrackingPage() {
   useRealtimeOrders({
     enabled: Boolean(orderId),
     filters: [{ filter: `id=eq.${orderId}` }],
-    onOrderChange: (payload) => {
-      if (!payload?.new) {
-        return;
-      }
+    onOrderChange: async (payload) => {
+      if (!payload?.new) return;
+
+      const nextStatus = payload.new.status;
 
       setOrder((current) =>
         current
-          ? {
-              ...current,
-              status: payload.new.status || current.status,
-              updated_at: payload.new.updated_at || current.updated_at
-            }
+          ? { ...current, status: nextStatus || current.status, updated_at: payload.new.updated_at || current.updated_at }
           : current
       );
+
+      if (nextStatus === "delivered" && !alreadyReviewed && !reviewSubmitted) {
+        try {
+          const existingReview = await fetchOrderReview(orderId);
+          if (!existingReview) setShowRatingModal(true);
+          else setAlreadyReviewed(true);
+        } catch {
+          setShowRatingModal(true);
+        }
+      }
     }
   });
+
+  function handleReviewSubmitted() {
+    setShowRatingModal(false);
+    setReviewSubmitted(true);
+  }
 
   return (
     <Shell
@@ -100,6 +121,24 @@ export default function OrderTrackingPage() {
             <div className="mt-6">
               <OrderStatusStepper currentStatus={order.status} />
             </div>
+
+            {order.status === "delivered" && (reviewSubmitted || alreadyReviewed) && (
+              <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {reviewSubmitted
+                  ? "Thanks for your review!"
+                  : "You have already reviewed this order."}
+              </div>
+            )}
+
+            {order.status === "delivered" && !alreadyReviewed && !reviewSubmitted && (
+              <button
+                type="button"
+                onClick={() => setShowRatingModal(true)}
+                className="mt-6 rounded-xl border border-[#01de1a] px-4 py-2 text-sm font-medium text-[#01de1a] transition hover:bg-[#01de1a] hover:text-black"
+              >
+                Rate this order
+              </button>
+            )}
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -151,6 +190,14 @@ export default function OrderTrackingPage() {
             </aside>
           </section>
         </div>
+      )}
+
+      {showRatingModal && order && (
+        <RatingModal
+          order={order}
+          onClose={() => setShowRatingModal(false)}
+          onSubmitted={handleReviewSubmitted}
+        />
       )}
     </Shell>
   );
