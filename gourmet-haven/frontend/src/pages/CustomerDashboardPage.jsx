@@ -9,14 +9,13 @@ import { useUiStore } from "../store/uiStore";
 
 function RestaurantCardSkeleton({ index }) {
   return (
-    <div key={`restaurant-skeleton-${index}`} className="card-surface overflow-hidden animate-pulse">
+    <div key={`skeleton-${index}`} className="card-surface overflow-hidden animate-pulse">
       <div className="h-40 w-full bg-slate-200" />
       <div className="px-5 pb-5 pt-10">
         <div className="h-14 w-14 -translate-y-1/2 rounded-full border-4 border-white bg-slate-200 shadow-md" />
         <div className="-mt-2 space-y-3">
           <div className="h-5 w-2/3 rounded bg-slate-200" />
           <div className="h-4 w-1/3 rounded bg-slate-200" />
-          <div className="h-4 w-1/2 rounded bg-slate-200" />
           <div className="h-4 w-5/6 rounded bg-slate-200" />
         </div>
       </div>
@@ -28,6 +27,7 @@ export default function CustomerDashboardPage() {
   const navigate = useNavigate();
   const activeCity = useUiStore((state) => state.activeCity);
   const lastAppliedFilterKeyRef = useRef("__all__");
+
   const [restaurants, setRestaurants] = useState([]);
   const [localities, setLocalities] = useState([]);
   const [selectedLocality, setSelectedLocality] = useState("");
@@ -39,13 +39,8 @@ export default function CustomerDashboardPage() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 400);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
+    const id = setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 400);
+    return () => clearTimeout(id);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -55,93 +50,58 @@ export default function CustomerDashboardPage() {
     async function loadInitialDiscovery() {
       setLoading(true);
       setError("");
-
       try {
         const [nextLocalities, nextRestaurants] = await Promise.all([
           fetchLocalities(),
           fetchRestaurants("", "")
         ]);
-
-        if (!isMounted) {
-          return;
-        }
-
+        if (!isMounted) return;
         setLocalities(Array.isArray(nextLocalities) ? nextLocalities : []);
         setRestaurants(Array.isArray(nextRestaurants) ? nextRestaurants : []);
         lastAppliedFilterKeyRef.current = "__all__";
         setInitialLoadComplete(true);
-      } catch (loadError) {
-        if (!isMounted) {
-          return;
-        }
-
+      } catch (err) {
+        if (!isMounted) return;
         setLocalities([]);
         setRestaurants([]);
-        setError(loadError.message || "Unable to load restaurant discovery right now.");
+        setError(err.message || "Unable to load restaurant discovery right now.");
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
     loadInitialDiscovery();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [retryToken]);
 
   useEffect(() => {
-    if (!initialLoadComplete) {
-      return;
-    }
+    if (!initialLoadComplete) return;
 
     const filterKey = `${selectedLocality}__${debouncedSearchQuery}`;
-
-    if (filterKey === lastAppliedFilterKeyRef.current) {
-      return;
-    }
+    if (filterKey === lastAppliedFilterKeyRef.current) return;
 
     let isMounted = true;
 
     async function loadFilteredRestaurants() {
       setLoading(true);
       setError("");
-
       try {
-        const nextRestaurants = await fetchRestaurants(selectedLocality, debouncedSearchQuery);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setRestaurants(Array.isArray(nextRestaurants) ? nextRestaurants : []);
+        const next = await fetchRestaurants(selectedLocality, debouncedSearchQuery);
+        if (!isMounted) return;
+        setRestaurants(Array.isArray(next) ? next : []);
         lastAppliedFilterKeyRef.current = filterKey;
-      } catch (loadError) {
-        if (!isMounted) {
-          return;
-        }
-
+      } catch (err) {
+        if (!isMounted) return;
         setRestaurants([]);
-        setError(loadError.message || "Unable to load restaurant discovery right now.");
+        setError(err.message || "Unable to load restaurants right now.");
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
     loadFilteredRestaurants();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [debouncedSearchQuery, initialLoadComplete, selectedLocality]);
-
-  function handleRetry() {
-    setRetryToken((current) => current + 1);
-  }
 
   return (
     <Shell
@@ -163,11 +123,9 @@ export default function CustomerDashboardPage() {
         <p className="mt-2 text-sm leading-7 text-slate-500">
           Search by restaurant name or narrow the list to a specific Hyderabad locality.
         </p>
-
         <div className="mt-6">
           <SearchBar value={searchQuery} onChange={setSearchQuery} />
         </div>
-
         <div className="mt-4">
           <LocalityFilter
             localities={localities}
@@ -198,7 +156,7 @@ export default function CustomerDashboardPage() {
             <p className="text-sm text-rose-700">{error}</p>
             <button
               type="button"
-              onClick={handleRetry}
+              onClick={() => setRetryToken((c) => c + 1)}
               className="mt-4 rounded-xl bg-[#01de1a] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
             >
               Retry
@@ -206,13 +164,11 @@ export default function CustomerDashboardPage() {
           </div>
         ) : loading ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => (
-              <RestaurantCardSkeleton key={`skeleton-card-${index}`} index={index} />
-            ))}
+            {Array.from({ length: 4 }, (_, i) => <RestaurantCardSkeleton key={i} index={i} />)}
           </div>
         ) : restaurants.length === 0 ? (
           <div className="card-surface p-6 text-sm leading-7 text-slate-500">
-            No restaurants found in this area yet
+            No restaurants found in this area yet.
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -220,9 +176,7 @@ export default function CustomerDashboardPage() {
               <RestaurantCard
                 key={restaurant.id}
                 restaurant={restaurant}
-                onBrowse={(selectedRestaurant) =>
-                  navigate(`/orders?restaurantId=${selectedRestaurant.id}`)
-                }
+                onBrowse={(r) => navigate(`/restaurant/${r.id}`)}
               />
             ))}
           </div>

@@ -11,6 +11,7 @@ import OrdersPage from "./pages/OrdersPage";
 import OrderTrackingPage from "./pages/OrderTrackingPage";
 import OwnerDashboardPage from "./pages/OwnerDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import RestaurantPage from "./pages/RestaurantPage";
 import SignupPage from "./pages/SignupPage";
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+
       <Route
         path="/customer"
         element={
@@ -33,6 +35,17 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Dedicated restaurant detail + menu page */}
+      <Route
+        path="/restaurant/:restaurantId"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <RestaurantPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/owner"
         element={

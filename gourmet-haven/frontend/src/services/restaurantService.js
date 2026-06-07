@@ -2,14 +2,8 @@ import { apiRequest } from "./apiClient";
 
 export async function fetchRestaurants(locality = "", search = "") {
   const params = new URLSearchParams();
-
-  if (typeof locality === "string" && locality.trim()) {
-    params.set("locality", locality.trim());
-  }
-
-  if (typeof search === "string" && search.trim()) {
-    params.set("search", search.trim());
-  }
+  if (typeof locality === "string" && locality.trim()) params.set("locality", locality.trim());
+  if (typeof search === "string" && search.trim()) params.set("search", search.trim());
 
   const path = params.toString() ? `/restaurants?${params.toString()}` : "/restaurants";
 
@@ -30,6 +24,27 @@ export async function fetchLocalities() {
   }
 }
 
+export async function fetchRestaurantDetail(restaurantId) {
+  try {
+    const response = await apiRequest(`/restaurants/${restaurantId}`);
+    return response?.data || null;
+  } catch (error) {
+    throw new Error(error.message || "Unable to load restaurant details.");
+  }
+}
+
+export async function fetchRestaurantMenu(restaurantId) {
+  try {
+    const response = await apiRequest(`/restaurants/${restaurantId}/menu`);
+    return {
+      restaurant: response?.restaurant || null,
+      menu: response?.menu || {}
+    };
+  } catch (error) {
+    throw new Error(error.message || "Unable to load the restaurant menu right now.");
+  }
+}
+
 export async function listRestaurants(locality = "", search = "") {
   const restaurants = await fetchRestaurants(locality, search);
   return { data: restaurants };
@@ -45,7 +60,6 @@ export async function createRestaurant(payload) {
     method: "POST",
     body: JSON.stringify(payload)
   });
-
   return response?.data || response;
 }
 
@@ -54,21 +68,7 @@ export async function updateRestaurant(restaurantId, payload) {
     method: "PATCH",
     body: JSON.stringify(payload)
   });
-
   return response?.data || response;
-}
-
-export async function fetchRestaurantMenu(restaurantId) {
-  try {
-    const response = await apiRequest(`/restaurants/${restaurantId}/menu`);
-
-    return {
-      restaurant: response?.restaurant || null,
-      menu: response?.menu || {}
-    };
-  } catch (error) {
-    throw new Error(error.message || "Unable to load the restaurant menu right now.");
-  }
 }
 
 export async function listMenuItems(restaurantId) {
@@ -81,7 +81,6 @@ export async function createMenuItem(payload) {
     method: "POST",
     body: JSON.stringify(payload)
   });
-
   return response?.data || response;
 }
 
@@ -90,6 +89,5 @@ export async function updateMenuItem(menuItemId, payload) {
     method: "PATCH",
     body: JSON.stringify(payload)
   });
-
   return response?.data || response;
 }

@@ -401,7 +401,7 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
   const inputClass =
     "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]";
 
-  const avatarSrc = form.avatar_url || legacyAssets.avatar;
+  const avatarSrc = form.avatar_url || null ;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -413,11 +413,17 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
       <div className="card-surface p-5">
         <p className="mb-4 text-sm font-semibold text-[#1a1a1a]">Profile photo</p>
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-          <img
-            src={avatarSrc}
-            alt="Avatar preview"
-            className="h-20 w-20 flex-shrink-0 rounded-full object-cover ring-4 ring-[#01de1a]/20"
-          />
+         {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt="Avatar preview"
+                className="h-20 w-20 flex-shrink-0 rounded-full object-cover ring-4 ring-[#01de1a]/20"
+              />
+            ) : (
+              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full bg-[#e8f9eb] text-2xl font-semibold text-[#01de1a] ring-4 ring-[#01de1a]/20">
+                {(profile?.full_name || user?.email || "U").slice(0, 1).toUpperCase()}
+              </div>
+            )}
           <div className="flex-1">
             <ImageUploader
               label="Upload new photo"
