@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import Shell from "../components/common/Shell";
 import OrderStatusStepper from "../components/customer/OrderStatusStepper";
 import RatingModal from "../components/customer/RatingModal";
+import { useAuth } from "../hooks/useAuth";
 import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
 import { formatPaise } from "../lib/orderPresentation";
 import { fetchOrder } from "../services/orderService";
@@ -19,12 +20,32 @@ function formatAddress(order) {
 
 export default function OrderTrackingPage() {
   const { id: orderId } = useParams();
+  const { profile } = useAuth();
+  const isCustomer = profile?.role === "customer";
+
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  async function checkAndMaybeShowReview(currentOrder) {
+    if (!isCustomer) return;
+    if (currentOrder?.status !== "delivered") return;
+    if (reviewSubmitted) return;
+
+    try {
+      const existing = await fetchOrderReview(orderId);
+      if (existing) {
+        setAlreadyReviewed(true);
+      } else {
+        setShowRatingModal(true);
+      }
+    } catch {
+      setShowRatingModal(true);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -35,13 +56,7 @@ export default function OrderTrackingPage() {
         const nextOrder = await fetchOrder(orderId);
         if (!isMounted) return;
         setOrder(nextOrder);
-
-        if (nextOrder?.status === "delivered") {
-          const existing = await fetchOrderReview(orderId);
-          if (!isMounted) return;
-          if (existing) setAlreadyReviewed(true);
-          else setShowRatingModal(true);
-        }
+        await checkAndMaybeShowReview(nextOrder);
       } catch (err) {
         if (!isMounted) return;
         setOrder(null);
@@ -53,6 +68,7 @@ export default function OrderTrackingPage() {
 
     if (orderId) loadOrder();
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   useRealtimeOrders({
@@ -61,13 +77,19 @@ export default function OrderTrackingPage() {
     onOrderChange: async (payload) => {
       if (!payload?.new) return;
       const nextStatus = payload.new.status;
-      setOrder((curr) => curr ? { ...curr, status: nextStatus || curr.status, updated_at: payload.new.updated_at || curr.updated_at } : curr);
-      if (nextStatus === "delivered" && !alreadyReviewed && !reviewSubmitted) {
+      setOrder((curr) =>
+        curr
+          ? { ...curr, status: nextStatus || curr.status, updated_at: payload.new.updated_at || curr.updated_at }
+          : curr
+      );
+      if (nextStatus === "delivered" && isCustomer && !alreadyReviewed && !reviewSubmitted) {
         try {
           const existing = await fetchOrderReview(orderId);
           if (!existing) setShowRatingModal(true);
           else setAlreadyReviewed(true);
-        } catch { setShowRatingModal(true); }
+        } catch {
+          setShowRatingModal(true);
+        }
       }
     }
   });
@@ -95,7 +117,7 @@ export default function OrderTrackingPage() {
                 </p>
               </div>
 
-              {order.status === "delivered" && !alreadyReviewed && !reviewSubmitted && (
+              {isCustomer && order.status === "delivered" && !alreadyReviewed && !reviewSubmitted && (
                 <button type="button" onClick={() => setShowRatingModal(true)} className="btn-secondary mt-2 sm:mt-0">
                   ⭐ Rate order
                 </button>
@@ -106,7 +128,7 @@ export default function OrderTrackingPage() {
               <OrderStatusStepper currentStatus={order.status} />
             </div>
 
-            {order.status === "delivered" && (reviewSubmitted || alreadyReviewed) && (
+            {isCustomer && order.status === "delivered" && (reviewSubmitted || alreadyReviewed) && (
               <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)", color: "var(--brand-dark)" }}>
                 {reviewSubmitted ? "Thanks for your review! 🎉" : "You've already reviewed this order."}
               </div>
@@ -175,7 +197,7 @@ export default function OrderTrackingPage() {
         </div>
       )}
 
-      {showRatingModal && order && (
+      {showRatingModal && order && isCustomer && (
         <RatingModal
           order={order}
           onClose={() => setShowRatingModal(false)}

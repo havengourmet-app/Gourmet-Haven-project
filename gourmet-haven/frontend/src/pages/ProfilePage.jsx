@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import Shell from "../components/common/Shell";
 import RoleBadge from "../components/common/RoleBadge";
-import OrderStatusBadge from "../components/common/OrderStatusBadge";
 import { ImageUploader } from "../components/owner/OwnerMenuManager";
+import OrderHistoryTab from "../components/customer/OrderHistoryTab";
 import { useAuth } from "../hooks/useAuth";
-import { formatOrderDate, formatPaise, shortOrderId } from "../lib/orderPresentation";
 import { updateProfile } from "../services/profileService";
 import { listAddresses, createAddress, updateAddress, deleteAddress } from "../services/addressService";
-import { listCustomerOrders } from "../services/orderService";
 
 const TABS = [
   { id: "profile", label: "Edit Profile" },
@@ -247,89 +245,6 @@ function AddressesTab() {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Order History Tab ─────────────────────────────────────────────────────────
-function OrderHistoryTab() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    listCustomerOrders()
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
-      .catch(() => setOrders([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="card-surface h-24 animate-pulse" style={{ background: "var(--muted)" }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <div className="card-surface p-10 text-center">
-        <p className="text-4xl">🍽️</p>
-        <p className="mt-3 font-semibold" style={{ color: "var(--ink)" }}>No orders yet</p>
-        <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
-          Your order history will appear here once you place an order.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <p className="label-xs">Past orders</p>
-        <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>
-          {orders.length} order{orders.length !== 1 ? "s" : ""}
-        </h3>
-      </div>
-
-      {orders.map((order) => (
-        <div key={order.id} className="card-surface p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-medium" style={{ color: "var(--ink-muted)" }}>
-                {shortOrderId(order.id)}
-              </p>
-              <p className="mt-1 font-semibold" style={{ color: "var(--ink)" }}>
-                {order.restaurant?.name || "Restaurant"}
-              </p>
-              <p className="mt-0.5 text-sm" style={{ color: "var(--ink-muted)" }}>
-                {formatOrderDate(order.created_at)}
-              </p>
-            </div>
-            <OrderStatusBadge status={order.status} />
-          </div>
-
-          <div
-            className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t pt-3 text-sm"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <span style={{ color: "var(--ink-muted)" }}>
-              {Array.isArray(order.items) ? order.items.length : 0} item{(Array.isArray(order.items) ? order.items.length : 0) !== 1 ? "s" : ""}
-            </span>
-            <span className="font-semibold" style={{ color: "var(--ink)" }}>
-              {formatPaise(order.total_paise)}
-            </span>
-          </div>
-
-          {Array.isArray(order.items) && order.items.length > 0 && (
-            <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>
-              {order.items.map((i) => `${i.name} ×${i.qty || i.quantity || 1}`).join(" · ")}
-            </p>
-          )}
-        </div>
-      ))}
     </div>
   );
 }

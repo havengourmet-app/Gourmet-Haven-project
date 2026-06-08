@@ -7,7 +7,6 @@ import DeliveryDashboardPage from "./pages/DeliveryDashboardPage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import OrdersPage from "./pages/OrdersPage";
 import OrderTrackingPage from "./pages/OrderTrackingPage";
 import OwnerDashboardPage from "./pages/OwnerDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -36,7 +35,7 @@ export default function App() {
         }
       />
 
-      {/* Dedicated restaurant detail + menu page */}
+      {/* Restaurant detail + menu page — the primary ordering flow for customers */}
       <Route
         path="/restaurant/:restaurantId"
         element={
@@ -62,18 +61,23 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* /orders is no longer a standalone page — redirect to discover.
+          Order history lives in /profile (Profile → Order History tab).
+          Active order tracking lives at /order/:id/track. */}
       <Route
         path="/orders"
         element={
           <ProtectedRoute allowedRoles={["customer"]}>
-            <OrdersPage />
+            <Navigate to="/customer" replace />
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/order/:id/track"
         element={
-          <ProtectedRoute allowedRoles={["customer"]}>
+          <ProtectedRoute allowedRoles={["customer", "owner", "delivery"]}>
             <OrderTrackingPage />
           </ProtectedRoute>
         }

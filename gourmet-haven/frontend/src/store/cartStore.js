@@ -85,7 +85,10 @@ export const useCartStore = create((set, get) => ({
     const meta = getRestaurantMeta(nextItems);
 
     set({
-      ...calculateCartState(nextItems, meta.restaurantId, meta.restaurantName)
+      ...calculateCartState(nextItems, meta.restaurantId, meta.restaurantName),
+      // Clear any stale conflict state when the cart changes
+      conflictPending: false,
+      pendingItem: null
     });
   },
 
@@ -108,7 +111,10 @@ export const useCartStore = create((set, get) => ({
     const meta = getRestaurantMeta(nextItems);
 
     set({
-      ...calculateCartState(nextItems, meta.restaurantId, meta.restaurantName)
+      ...calculateCartState(nextItems, meta.restaurantId, meta.restaurantName),
+      // Clear stale conflict if cart is now empty or restaurant changed
+      conflictPending: false,
+      pendingItem: null
     });
   },
 

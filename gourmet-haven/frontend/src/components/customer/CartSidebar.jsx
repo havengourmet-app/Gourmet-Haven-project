@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { listAddresses } from "../../services/addressService";
 import { placeOrder } from "../../services/orderService";
 import { useCartStore } from "../../store/cartStore";
 
@@ -7,6 +8,12 @@ const MINIMUM_ORDER_PAISE = 10000;
 
 function formatPaise(value) {
   return `₹${(Number(value || 0) / 100).toFixed(0)}`;
+}
+
+function buildAddressString(addr) {
+  return [addr.line_1, addr.line_2, addr.locality, addr.city, addr.pincode]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export default function CartSidebar({ activeRestaurant }) {
@@ -29,11 +36,39 @@ export default function CartSidebar({ activeRestaurant }) {
     dismissConflict
   } = useCartStore();
 
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("manual");
+  const [manualAddress, setManualAddress] = useState("");
   const [inlineError, setInlineError] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  const canPlaceOrder = subtotalPaise >= MINIMUM_ORDER_PAISE && items.length > 0 && !isPlacingOrder;
+  useEffect(() => {
+    listAddresses()
+      .then((addrs) => {
+        const list = Array.isArray(addrs) ? addrs : [];
+        setSavedAddresses(list);
+        // Pre-select the default address if one exists
+        const defaultAddr = list.find((a) => a.is_default);
+        if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+      })
+      .catch(() => setSavedAddresses([]));
+  }, []);
+
+  const resolvedDeliveryAddress = useMemo(() => {
+    if (selectedAddressId === "manual") {
+      return manualAddress.trim() ? { full_address: manualAddress.trim() } : null;
+    }
+    const saved = savedAddresses.find((a) => a.id === selectedAddressId);
+    if (!saved) return null;
+    return { full_address: buildAddressString(saved) };
+  }, [selectedAddressId, manualAddress, savedAddresses]);
+
+  const canPlaceOrder =
+    subtotalPaise >= MINIMUM_ORDER_PAISE &&
+    items.length > 0 &&
+    !isPlacingOrder &&
+    Boolean(resolvedDeliveryAddress?.full_address);
+
   const currentRestaurantLabel = useMemo(
     () => restaurantName || items[0]?.restaurantName || "another restaurant",
     [items, restaurantName]
@@ -44,7 +79,7 @@ export default function CartSidebar({ activeRestaurant }) {
     if (!restaurantId) { setInlineError("Choose a restaurant before placing an order."); return; }
     if (items.length === 0) { setInlineError("Add at least one item."); return; }
     if (subtotalPaise < MINIMUM_ORDER_PAISE) { setInlineError("Minimum order is ₹100."); return; }
-    if (!deliveryAddress.trim()) { setInlineError("Please enter a delivery address."); return; }
+    if (!resolvedDeliveryAddress?.full_address) { setInlineError("Please enter or select a delivery address."); return; }
 
     setIsPlacingOrder(true);
     try {
@@ -61,11 +96,11 @@ export default function CartSidebar({ activeRestaurant }) {
         delivery_fee: deliveryFeePaise,
         platform_fee: platformFeePaise,
         total: totalPaise,
-        delivery_address: { full_address: deliveryAddress.trim(), lat: null, lng: null }
+        delivery_address: { full_address: resolvedDeliveryAddress.full_address, lat: null, lng: null }
       });
 
       clearCart();
-      setDeliveryAddress("");
+      setManualAddress("");
       navigate(`/order/${order.id}/track`);
     } catch (error) {
       setInlineError(error.message || "Unable to place the order right now.");
@@ -213,15 +248,43 @@ export default function CartSidebar({ activeRestaurant }) {
 
           {/* Delivery address */}
           {items.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <label className="input-label">Delivery address</label>
-              <textarea
-                rows="2"
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                className="input resize-none"
-                placeholder="Flat, street, landmark, locality"
-              />
+
+              {savedAddresses.length > 0 && (
+                <select
+                  value={selectedAddressId}
+                  onChange={(e) => setSelectedAddressId(e.target.value)}
+                  className="input"
+                >
+                  {savedAddresses.map((addr) => (
+                    <option key={addr.id} value={addr.id}>
+                      {addr.label} — {addr.locality}, {addr.pincode}
+                      {addr.is_default ? " (default)" : ""}
+                    </option>
+                  ))}
+                  <option value="manual">Enter a different address…</option>
+                </select>
+              )}
+
+              {(selectedAddressId === "manual" || savedAddresses.length === 0) && (
+                <textarea
+                  rows="2"
+                  value={manualAddress}
+                  onChange={(e) => setManualAddress(e.target.value)}
+                  className="input resize-none"
+                  placeholder="Flat, street, landmark, locality"
+                />
+              )}
+
+              {selectedAddressId !== "manual" && savedAddresses.length > 0 && (() => {
+                const addr = savedAddresses.find((a) => a.id === selectedAddressId);
+                return addr ? (
+                  <p className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                    {buildAddressString(addr)}
+                  </p>
+                ) : null;
+              })()}
             </div>
           )}
 

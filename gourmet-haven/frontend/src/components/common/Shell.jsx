@@ -6,7 +6,6 @@ import RoleBadge from "./RoleBadge";
 const NAV_BY_ROLE = {
   customer: [
     { label: "Discover", to: "/customer" },
-    { label: "Orders", to: "/orders" },
     { label: "Profile", to: "/profile" }
   ],
   owner: [
