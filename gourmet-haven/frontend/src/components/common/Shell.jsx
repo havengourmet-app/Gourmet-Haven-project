@@ -32,42 +32,69 @@ export default function Shell({ children, title, subtitle, actions }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#1a1a1a]">
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur">
-        <div className="page-shell gap-4 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/"
-                className="text-2xl font-bold tracking-wide text-[#01de1a]"
-              >
-                QUICKDYNE
+    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+
+      {/* ── Header ── */}
+      <header
+        className="sticky top-0 z-40"
+        style={{
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--border)"
+        }}
+      >
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
+
+          {/* Top row */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-2">
+                {/* Logo mark */}
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-sm font-bold"
+                  style={{ background: "var(--brand)" }}
+                >
+                  Q
+                </div>
+                <span
+                  className="text-xl font-bold tracking-tight hidden sm:block"
+                  style={{ color: "var(--ink)" }}
+                >
+                  QuickDyne
+                </span>
               </Link>
               <RoleBadge role={role} />
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600">
-              <span className="rounded-full bg-[#f8f9fa] px-3 py-1">City: {activeCity}</span>
+
+            <div className="flex items-center gap-2">
+              <span
+                className="hidden rounded-lg px-3 py-1.5 text-xs font-medium sm:inline-flex items-center gap-1"
+                style={{ background: "var(--muted)", color: "var(--ink-secondary)", border: "1px solid var(--border)" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="opacity-60">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                  <circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                {activeCity}
+              </span>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-[#1a1a1a] transition hover:border-[#01de1a] hover:text-[#01de1a]"
+                className="btn-secondary text-xs py-1.5 px-3"
               >
                 Sign out
               </button>
             </div>
           </div>
 
-          <nav className="flex flex-wrap gap-3">
+          {/* Nav row */}
+          <nav className="flex flex-wrap gap-1.5">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `rounded-full px-4 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? "bg-[#01de1a] text-black"
-                      : "border border-black/10 text-slate-600 hover:border-[#01de1a] hover:text-[#01de1a]"
-                  }`
+                  `nav-pill text-sm ${isActive ? "nav-pill-active" : ""}`
                 }
               >
                 {item.label}
@@ -77,15 +104,28 @@ export default function Shell({ children, title, subtitle, actions }) {
         </div>
       </header>
 
+      {/* ── Main content ── */}
       <main className="page-shell">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-[#01de1a]">Hyderabad-first food platform</p>
-            <h1 className="mt-2 text-3xl font-semibold text-[#1a1a1a]">{title}</h1>
-            {subtitle ? <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{subtitle}</p> : null}
+        {(title || subtitle || actions) && (
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              {title && (
+                <>
+                  <p className="label-xs mb-2">Hyderabad-first food platform</p>
+                  <h1 className="text-3xl font-semibold tracking-tight" style={{ color: "var(--ink)" }}>
+                    {title}
+                  </h1>
+                </>
+              )}
+              {subtitle && (
+                <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: "var(--ink-secondary)" }}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
           </div>
-          {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
-        </div>
+        )}
 
         {children}
       </main>

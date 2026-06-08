@@ -4,7 +4,6 @@ import RoleBadge from "../components/common/RoleBadge";
 import OrderStatusBadge from "../components/common/OrderStatusBadge";
 import { ImageUploader } from "../components/owner/OwnerMenuManager";
 import { useAuth } from "../hooks/useAuth";
-import { legacyAssets } from "../lib/legacyAssets";
 import { formatOrderDate, formatPaise, shortOrderId } from "../lib/orderPresentation";
 import { updateProfile } from "../services/profileService";
 import { listAddresses, createAddress, updateAddress, deleteAddress } from "../services/addressService";
@@ -28,6 +27,7 @@ const EMPTY_ADDRESS = {
   is_default: false
 };
 
+// ── Address Form ─────────────────────────────────────────────────────────────
 function AddressForm({ initial = EMPTY_ADDRESS, onSave, onCancel, isSaving }) {
   const [form, setForm] = useState({ ...EMPTY_ADDRESS, ...initial });
   const [error, setError] = useState("");
@@ -42,93 +42,80 @@ function AddressForm({ initial = EMPTY_ADDRESS, onSave, onCancel, isSaving }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    try {
-      await onSave(form);
-    } catch (err) {
-      setError(err.message || "Failed to save address.");
-    }
+    try { await onSave(form); }
+    catch (err) { setError(err.message || "Failed to save address."); }
   }
-
-  const inputClass =
-    "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]";
-  const labelClass = "block";
-  const spanClass = "mb-2 block text-sm text-slate-500";
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-      <label className={labelClass}>
-        <span className={spanClass}>Label</span>
-        <select {...field("label")} className={inputClass}>
-          {["Home", "Work", "Other"].map((l) => (
-            <option key={l}>{l}</option>
-          ))}
+      <div>
+        <label className="input-label">Label</label>
+        <select {...field("label")} className="input">
+          {["Home", "Work", "Other"].map((l) => <option key={l}>{l}</option>)}
         </select>
-      </label>
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Recipient name</span>
-        <input type="text" required placeholder="Full name" {...field("recipient_name")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Recipient name</label>
+        <input type="text" required placeholder="Full name" {...field("recipient_name")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Phone</span>
-        <input type="tel" required placeholder="+91 98765 43210" {...field("phone")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Phone</label>
+        <input type="tel" required placeholder="+91 98765 43210" {...field("phone")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Flat / House no.</span>
-        <input type="text" required placeholder="Flat 4B, Block C" {...field("line_1")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Flat / House no.</label>
+        <input type="text" required placeholder="Flat 4B, Block C" {...field("line_1")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Landmark (optional)</span>
-        <input type="text" placeholder="Near metro station" {...field("line_2")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Landmark (optional)</label>
+        <input type="text" placeholder="Near metro station" {...field("line_2")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Locality</span>
-        <input type="text" required placeholder="Madhapur" {...field("locality")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Locality</label>
+        <input type="text" required placeholder="Madhapur" {...field("locality")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>City</span>
-        <input type="text" required placeholder="Hyderabad" {...field("city")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">City</label>
+        <input type="text" required placeholder="Hyderabad" {...field("city")} className="input" />
+      </div>
 
-      <label className={labelClass}>
-        <span className={spanClass}>Pincode</span>
-        <input type="text" required placeholder="500081" {...field("pincode")} className={inputClass} />
-      </label>
+      <div>
+        <label className="input-label">Pincode</label>
+        <input type="text" required placeholder="500081" {...field("pincode")} className="input" />
+      </div>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-slate-600 transition hover:border-[#01de1a] md:col-span-2">
+      <label
+        className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition md:col-span-2"
+        style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
+      >
         <input
           type="checkbox"
           checked={form.is_default}
           onChange={(e) => setForm((f) => ({ ...f, is_default: e.target.checked }))}
-          className="h-4 w-4 accent-[#01de1a]"
+          className="h-4 w-4 accent-green-600"
         />
-        Set as <strong>default address</strong>
+        <span className="text-sm" style={{ color: "var(--ink-secondary)" }}>
+          Set as <strong style={{ color: "var(--ink)" }}>default address</strong>
+        </span>
       </label>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">
+        <div className="rounded-xl px-4 py-3 text-sm md:col-span-2" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
           {error}
         </div>
       )}
 
       <div className="flex flex-wrap gap-3 md:col-span-2">
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="rounded-xl bg-[#01de1a] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:opacity-60"
-        >
+        <button type="submit" disabled={isSaving} className="btn-primary">
           {isSaving ? "Saving..." : "Save address"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-black/10 px-5 py-3 text-sm text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
-        >
+        <button type="button" onClick={onCancel} className="btn-secondary">
           Cancel
         </button>
       </div>
@@ -136,6 +123,7 @@ function AddressForm({ initial = EMPTY_ADDRESS, onSave, onCancel, isSaving }) {
   );
 }
 
+// ── Addresses Tab ─────────────────────────────────────────────────────────────
 function AddressesTab() {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -177,41 +165,31 @@ function AddressesTab() {
     setNotice("Address deleted.");
   }
 
-  function startEdit(address) {
-    setEditingId(address.id);
-    setMode("edit");
-    setNotice("");
-  }
-
   const editingAddress = addresses.find((a) => a.id === editingId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Saved addresses</p>
-          <h3 className="mt-2 text-xl font-semibold text-[#1a1a1a]">Delivery locations</h3>
+          <p className="label-xs">Saved addresses</p>
+          <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>Delivery locations</h3>
         </div>
         {mode === "idle" && (
-          <button
-            type="button"
-            onClick={() => { setMode("create"); setNotice(""); }}
-            className="rounded-xl bg-[#01de1a] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
-          >
+          <button type="button" onClick={() => { setMode("create"); setNotice(""); }} className="btn-primary">
             + Add address
           </button>
         )}
       </div>
 
       {notice && (
-        <div className="rounded-2xl border border-black/10 bg-[#f8f9fa] px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)", color: "var(--brand-dark)" }}>
           {notice}
         </div>
       )}
 
       {mode !== "idle" && (
-        <div className="rounded-3xl bg-[#f8f9fa] p-5">
-          <p className="mb-4 text-sm font-semibold text-[#1a1a1a]">
+        <div className="card-surface p-5">
+          <p className="mb-4 text-sm font-semibold" style={{ color: "var(--ink)" }}>
             {mode === "edit" ? "Edit address" : "New address"}
           </p>
           <AddressForm
@@ -224,52 +202,44 @@ function AddressesTab() {
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-500">Loading addresses...</div>
+        <div className="text-sm" style={{ color: "var(--ink-muted)" }}>Loading addresses...</div>
       ) : addresses.length === 0 ? (
-        <div className="rounded-2xl bg-[#f8f9fa] p-6 text-sm text-slate-500">
-          No addresses saved yet. Add one above to speed up checkout.
+        <div className="card-surface p-8 text-center">
+          <p className="text-3xl">📍</p>
+          <p className="mt-3 font-semibold" style={{ color: "var(--ink)" }}>No addresses saved</p>
+          <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>Add one above to speed up checkout.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {addresses.map((addr) => (
-            <div
-              key={addr.id}
-              className="card-surface flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between"
-            >
+            <div key={addr.id} className="card-surface flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#e8f9eb] text-lg">
+                <div
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-lg"
+                  style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)" }}
+                >
                   {addr.label === "Home" ? "🏠" : addr.label === "Work" ? "💼" : "📍"}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-[#1a1a1a]">{addr.label}</p>
+                    <p className="font-semibold" style={{ color: "var(--ink)" }}>{addr.label}</p>
                     {addr.is_default && (
-                      <span className="rounded-full bg-[#e8f9eb] px-2 py-0.5 text-xs font-semibold text-[#01de1a]">
-                        Default
-                      </span>
+                      <span className="badge badge-green">Default</span>
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{addr.recipient_name} · {addr.phone}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {[addr.line_1, addr.line_2, addr.locality, addr.city, addr.pincode]
-                      .filter(Boolean)
-                      .join(", ")}
+                  <p className="mt-1 text-sm" style={{ color: "var(--ink-secondary)" }}>
+                    {addr.recipient_name} · {addr.phone}
+                  </p>
+                  <p className="mt-0.5 text-sm" style={{ color: "var(--ink-muted)" }}>
+                    {[addr.line_1, addr.line_2, addr.locality, addr.city, addr.pincode].filter(Boolean).join(", ")}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => startEdit(addr)}
-                  className="rounded-xl border border-black/10 px-3 py-2 text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
-                >
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setEditingId(addr.id); setMode("edit"); setNotice(""); }} className="btn-secondary text-xs py-1.5 px-3">
                   Edit
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(addr.id)}
-                  className="rounded-xl border border-rose-200 px-3 py-2 text-rose-600 transition hover:bg-rose-50"
-                >
+                <button type="button" onClick={() => handleDelete(addr.id)} className="btn-danger text-xs py-1.5 px-3">
                   Delete
                 </button>
               </div>
@@ -281,6 +251,7 @@ function AddressesTab() {
   );
 }
 
+// ── Order History Tab ─────────────────────────────────────────────────────────
 function OrderHistoryTab() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -293,15 +264,23 @@ function OrderHistoryTab() {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-slate-500">Loading order history...</div>;
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card-surface h-24 animate-pulse" style={{ background: "var(--muted)" }} />
+        ))}
+      </div>
+    );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-2xl bg-[#f8f9fa] p-8 text-center">
-        <p className="text-3xl">🍽️</p>
-        <p className="mt-3 font-semibold text-[#1a1a1a]">No orders yet</p>
-        <p className="mt-2 text-sm text-slate-500">Your order history will appear here once you place an order.</p>
+      <div className="card-surface p-10 text-center">
+        <p className="text-4xl">🍽️</p>
+        <p className="mt-3 font-semibold" style={{ color: "var(--ink)" }}>No orders yet</p>
+        <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
+          Your order history will appear here once you place an order.
+        </p>
       </div>
     );
   }
@@ -309,8 +288,8 @@ function OrderHistoryTab() {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Past orders</p>
-        <h3 className="mt-2 text-xl font-semibold text-[#1a1a1a]">
+        <p className="label-xs">Past orders</p>
+        <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>
           {orders.length} order{orders.length !== 1 ? "s" : ""}
         </h3>
       </div>
@@ -319,40 +298,43 @@ function OrderHistoryTab() {
         <div key={order.id} className="card-surface p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+              <p className="text-xs font-medium" style={{ color: "var(--ink-muted)" }}>
                 {shortOrderId(order.id)}
               </p>
-              <p className="mt-2 font-semibold text-[#1a1a1a]">
+              <p className="mt-1 font-semibold" style={{ color: "var(--ink)" }}>
                 {order.restaurant?.name || "Restaurant"}
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-0.5 text-sm" style={{ color: "var(--ink-muted)" }}>
                 {formatOrderDate(order.created_at)}
               </p>
             </div>
             <OrderStatusBadge status={order.status} />
           </div>
 
-          <div className="mt-3 border-t border-black/5 pt-3">
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
-              <span>
-                {Array.isArray(order.items) ? order.items.length : 0} item
-                {(Array.isArray(order.items) ? order.items.length : 0) !== 1 ? "s" : ""}
-              </span>
-              <span className="font-semibold text-[#1a1a1a]">{formatPaise(order.total_paise)}</span>
-            </div>
-
-            {Array.isArray(order.items) && order.items.length > 0 && (
-              <p className="mt-1 text-xs text-slate-400">
-                {order.items.map((i) => `${i.name} ×${i.qty || i.quantity || 1}`).join(" · ")}
-              </p>
-            )}
+          <div
+            className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t pt-3 text-sm"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <span style={{ color: "var(--ink-muted)" }}>
+              {Array.isArray(order.items) ? order.items.length : 0} item{(Array.isArray(order.items) ? order.items.length : 0) !== 1 ? "s" : ""}
+            </span>
+            <span className="font-semibold" style={{ color: "var(--ink)" }}>
+              {formatPaise(order.total_paise)}
+            </span>
           </div>
+
+          {Array.isArray(order.items) && order.items.length > 0 && (
+            <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>
+              {order.items.map((i) => `${i.name} ×${i.qty || i.quantity || 1}`).join(" · ")}
+            </p>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
+// ── Edit Profile Tab ──────────────────────────────────────────────────────────
 function EditProfileTab({ user, profile, onProfileUpdated }) {
   const [form, setForm] = useState({
     full_name: profile?.full_name || "",
@@ -376,12 +358,7 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
     e.preventDefault();
     setNotice("");
     setError("");
-
-    if (isAvatarUploading) {
-      setError("Please wait for the avatar upload to finish.");
-      return;
-    }
-
+    if (isAvatarUploading) { setError("Please wait for the avatar upload to finish."); return; }
     setIsSaving(true);
     try {
       const updated = await updateProfile({
@@ -398,32 +375,34 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
     }
   }
 
-  const inputClass =
-    "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]";
-
-  const avatarSrc = form.avatar_url || null ;
+  const initials = (profile?.full_name || user?.email || "U").slice(0, 1).toUpperCase();
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Account details</p>
-        <h3 className="mt-2 text-xl font-semibold text-[#1a1a1a]">Edit your profile</h3>
+        <p className="label-xs">Account details</p>
+        <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>Edit your profile</h3>
       </div>
 
+      {/* Avatar */}
       <div className="card-surface p-5">
-        <p className="mb-4 text-sm font-semibold text-[#1a1a1a]">Profile photo</p>
+        <p className="mb-4 text-sm font-semibold" style={{ color: "var(--ink)" }}>Profile photo</p>
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-         {avatarSrc ? (
-              <img
-                src={avatarSrc}
-                alt="Avatar preview"
-                className="h-20 w-20 flex-shrink-0 rounded-full object-cover ring-4 ring-[#01de1a]/20"
-              />
-            ) : (
-              <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full bg-[#e8f9eb] text-2xl font-semibold text-[#01de1a] ring-4 ring-[#01de1a]/20">
-                {(profile?.full_name || user?.email || "U").slice(0, 1).toUpperCase()}
-              </div>
-            )}
+          {form.avatar_url ? (
+            <img
+              src={form.avatar_url}
+              alt="Avatar"
+              className="h-20 w-20 flex-shrink-0 rounded-full object-cover"
+              style={{ border: "3px solid var(--brand-lighter)" }}
+            />
+          ) : (
+            <div
+              className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-2xl font-bold text-white"
+              style={{ background: "var(--brand)", border: "3px solid var(--brand-lighter)" }}
+            >
+              {initials}
+            </div>
+          )}
           <div className="flex-1">
             <ImageUploader
               label="Upload new photo"
@@ -435,46 +414,49 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
         </div>
       </div>
 
+      {/* Fields */}
       <div className="card-surface grid gap-4 p-5 md:grid-cols-2">
-        <label className="block md:col-span-2">
-          <span className="mb-2 block text-sm text-slate-500">Email address</span>
+        <div className="md:col-span-2">
+          <label className="input-label">Email address</label>
           <input
             type="text"
             value={user?.email || ""}
             disabled
-            className="w-full rounded-2xl border border-black/10 bg-slate-50 px-4 py-3 text-sm text-slate-400 outline-none cursor-not-allowed"
+            className="input cursor-not-allowed"
+            style={{ background: "var(--muted)", color: "var(--ink-muted)" }}
           />
-          <p className="mt-1 text-xs text-slate-400">Email cannot be changed here.</p>
-        </label>
+          <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>Email cannot be changed here.</p>
+        </div>
 
-        <label className="block">
-          <span className="mb-2 block text-sm text-slate-500">Full name</span>
+        <div>
+          <label className="input-label">Full name</label>
           <input
             type="text"
             value={form.full_name}
             onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
             placeholder="Your name"
-            className={inputClass}
+            className="input"
           />
-        </label>
+        </div>
 
-        <label className="block">
-          <span className="mb-2 block text-sm text-slate-500">Phone number</span>
+        <div>
+          <label className="input-label">Phone number</label>
           <input
             type="tel"
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             placeholder="+91 98765 43210"
-            className={inputClass}
+            className="input"
           />
-        </label>
+        </div>
       </div>
 
+      {/* Role info */}
       <div className="card-surface p-5">
-        <p className="text-sm font-semibold text-[#1a1a1a]">Account role</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>Account role</p>
         <div className="mt-3 flex items-center gap-3">
           <RoleBadge role={profile?.role || "customer"} />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm" style={{ color: "var(--ink-secondary)" }}>
             {profile?.role === "owner"
               ? "You manage restaurants on this platform."
               : profile?.role === "delivery"
@@ -482,18 +464,18 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
               : "You order food through this platform."}
           </p>
         </div>
-        <p className="mt-3 text-xs text-slate-400">
+        <p className="mt-3 text-xs" style={{ color: "var(--ink-muted)" }}>
           Account ID: {profile?.id || user?.id || "—"}
         </p>
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
           {error}
         </div>
       )}
       {notice && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)", color: "var(--brand-dark)" }}>
           {notice}
         </div>
       )}
@@ -501,7 +483,7 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
       <button
         type="submit"
         disabled={isSaving || isAvatarUploading}
-        className="rounded-xl bg-[#01de1a] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn-primary"
       >
         {isAvatarUploading ? "Uploading photo..." : isSaving ? "Saving..." : "Save changes"}
       </button>
@@ -509,15 +491,14 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
   );
 }
 
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [localProfile, setLocalProfile] = useState(profile);
   const role = localProfile?.role || profile?.role || "customer";
 
-  useEffect(() => {
-    setLocalProfile(profile);
-  }, [profile]);
+  useEffect(() => { setLocalProfile(profile); }, [profile]);
 
   const visibleTabs = role === "customer"
     ? TABS
@@ -528,17 +509,14 @@ export default function ProfilePage() {
       title="Your profile"
       subtitle="Manage your account details, delivery addresses, and view your order history."
     >
+      {/* Tab bar */}
       <nav className="flex flex-wrap gap-2">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              activeTab === tab.id
-                ? "bg-[#01de1a] text-black"
-                : "border border-black/10 text-slate-600 hover:border-[#01de1a] hover:text-[#01de1a]"
-            }`}
+            className={`nav-pill ${activeTab === tab.id ? "nav-pill-active" : ""}`}
           >
             {tab.label}
           </button>

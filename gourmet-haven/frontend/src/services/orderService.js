@@ -2,17 +2,18 @@ import { apiRequest } from "./apiClient";
 
 export async function listCustomerOrders() {
   const response = await apiRequest("/orders/customer");
-  return response?.data || response;
+  // Backend returns { success: true, data: [...] }
+  return response?.data ?? [];
 }
 
 export async function listOwnerOrders() {
   const response = await apiRequest("/orders/owner");
-  return response?.data || response;
+  return response?.data ?? [];
 }
 
 export async function listDeliveryOrders() {
   const response = await apiRequest("/orders/delivery");
-  return response?.data || response;
+  return response?.data ?? [];
 }
 
 export async function placeOrder(orderData) {
@@ -21,8 +22,8 @@ export async function placeOrder(orderData) {
       method: "POST",
       body: JSON.stringify(orderData)
     });
-
-    return response?.order || null;
+    // Backend returns { order: { id, status, total_paise, created_at } }
+    return response?.order ?? null;
   } catch (error) {
     throw new Error(error.message || "Unable to place the order right now.");
   }
@@ -31,7 +32,8 @@ export async function placeOrder(orderData) {
 export async function fetchOrder(orderId) {
   try {
     const response = await apiRequest(`/orders/${orderId}`);
-    return response?.order || null;
+    // Backend returns { order: {...} }
+    return response?.order ?? null;
   } catch (error) {
     throw new Error(error.message || "Unable to load the order right now.");
   }
@@ -46,6 +48,5 @@ export async function updateOrderStatus(orderId, payload) {
     method: "PATCH",
     body: JSON.stringify(payload)
   });
-
-  return response?.data || response;
+  return response?.data ?? response;
 }

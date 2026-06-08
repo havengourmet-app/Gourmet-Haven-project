@@ -15,10 +15,7 @@ const EMPTY_FORM = {
 };
 
 function toFormValues(item) {
-  if (!item) {
-    return EMPTY_FORM;
-  }
-
+  if (!item) return EMPTY_FORM;
   return {
     name: item.name || "",
     description: item.description || "",
@@ -31,9 +28,7 @@ function toFormValues(item) {
 }
 
 function revokeObjectUrl(url) {
-  if (url?.startsWith("blob:")) {
-    URL.revokeObjectURL(url);
-  }
+  if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
 }
 
 export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange }) {
@@ -43,57 +38,32 @@ export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange 
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    setPreviewUrl(existingUrl || null);
-  }, [existingUrl]);
-
+  useEffect(() => { setPreviewUrl(existingUrl || null); }, [existingUrl]);
   useEffect(() => () => revokeObjectUrl(temporaryUrl), [temporaryUrl]);
 
-  function setUploadingState(nextValue) {
-    setIsUploading(nextValue);
-    onUploadingChange?.(nextValue);
-  }
+  function setUploadingState(v) { setIsUploading(v); onUploadingChange?.(v); }
 
   async function handleSelectedFile(file) {
-    if (!file) {
-      return;
-    }
-
-    if (!file.type?.startsWith("image/")) {
-      setError("Only image files can be uploaded.");
-      return;
-    }
-
-    if (file.size > MAX_SIZE_BYTES) {
-      setError(`Image must be smaller than ${MAX_SIZE_MB} MB.`);
-      return;
-    }
-
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) { setError("Only image files can be uploaded."); return; }
+    if (file.size > MAX_SIZE_BYTES) { setError(`Image must be smaller than ${MAX_SIZE_MB} MB.`); return; }
     setError("");
-
-    const nextTemporaryUrl = URL.createObjectURL(file);
+    const nextTmp = URL.createObjectURL(file);
     revokeObjectUrl(temporaryUrl);
-    setTemporaryUrl(nextTemporaryUrl);
-    setPreviewUrl(nextTemporaryUrl);
+    setTemporaryUrl(nextTmp);
+    setPreviewUrl(nextTmp);
     setUploadingState(true);
-
     try {
-      const secureUrl = await uploadImage(file);
-      revokeObjectUrl(nextTemporaryUrl);
+      const url = await uploadImage(file);
+      revokeObjectUrl(nextTmp);
       setTemporaryUrl(null);
-      setPreviewUrl(secureUrl);
-      onUpload?.(secureUrl);
-    } catch (uploadError) {
-      setError(uploadError.message || "Image upload failed. Please try again.");
+      setPreviewUrl(url);
+      onUpload?.(url);
+    } catch (err) {
+      setError(err.message || "Image upload failed.");
     } finally {
       setUploadingState(false);
     }
-  }
-
-  function handleInputChange(event) {
-    const file = event.target.files?.[0] || null;
-    event.target.value = "";
-    void handleSelectedFile(file);
   }
 
   function handleRemove() {
@@ -105,73 +75,56 @@ export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange 
   }
 
   return (
-    <div className="space-y-3">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleInputChange}
-      />
+    <div className="space-y-2">
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0] || null; e.target.value = ""; void handleSelectedFile(f); }} />
 
       <button
         type="button"
         disabled={isUploading}
         onClick={() => inputRef.current?.click()}
-        className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-black/15 bg-white px-6 py-5 text-center transition hover:border-[#01de1a] hover:bg-[#f0fdf1] disabled:cursor-not-allowed disabled:opacity-70"
+        className="flex w-full flex-col items-center justify-center gap-3 rounded-xl px-5 py-4 text-center transition disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ border: "2px dashed var(--border)", background: "var(--muted)" }}
+        onMouseEnter={(e) => { if (!isUploading) e.currentTarget.style.borderColor = "var(--brand)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
       >
-        <span className="text-sm font-medium text-[#1a1a1a]">{label}</span>
+        <span className="text-sm font-medium" style={{ color: "var(--ink)" }}>{label}</span>
 
         {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt={`${label} preview`}
-            className="max-h-[120px] w-auto rounded-2xl object-contain"
-          />
+          <img src={previewUrl} alt="preview" className="max-h-28 w-auto rounded-xl object-contain" />
         ) : (
-          <div className="rounded-2xl bg-[#f8f9fa] px-4 py-6 text-sm text-slate-500">
+          <div className="rounded-xl px-4 py-5 text-sm" style={{ background: "var(--card)", color: "var(--ink-muted)" }}>
             Click to choose an image
           </div>
         )}
 
         {isUploading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-[#01de1a]" />
-            Uploading image...
+          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--ink-secondary)" }}>
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-t-green-600" style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            Uploading...
           </div>
         ) : (
-          <span className="text-xs text-slate-400">PNG, JPG, WebP or GIF up to {MAX_SIZE_MB} MB</span>
+          <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
+            PNG, JPG, WebP up to {MAX_SIZE_MB} MB
+          </span>
         )}
       </button>
 
-      {previewUrl ? (
-        <button
-          type="button"
-          disabled={isUploading}
-          onClick={handleRemove}
-          className="text-sm font-medium text-rose-600 transition hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      {previewUrl && (
+        <button type="button" disabled={isUploading} onClick={handleRemove} className="text-sm" style={{ color: "#dc2626" }}>
           Remove image
         </button>
-      ) : null}
+      )}
 
-      {error ? (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-700">
+      {error && (
+        <div className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
           {error}
-        </p>
-      ) : null}
+        </div>
+      )}
     </div>
   );
 }
 
-export default function OwnerMenuManager({
-  restaurant,
-  items,
-  isSubmitting,
-  notice,
-  onCreateItem,
-  onUpdateItem
-}) {
+export default function OwnerMenuManager({ restaurant, items, isSubmitting, notice, onCreateItem, onUpdateItem }) {
   const menuItems = Array.isArray(items) ? items : [];
   const [mode, setMode] = useState("idle");
   const [editingItemId, setEditingItemId] = useState(null);
@@ -180,47 +133,20 @@ export default function OwnerMenuManager({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (mode === "create") {
-      setForm(EMPTY_FORM);
-      setError("");
-      setIsImageUploading(false);
-      return;
-    }
-
+    if (mode === "create") { setForm(EMPTY_FORM); setError(""); setIsImageUploading(false); return; }
     if (mode === "edit") {
-      const item = menuItems.find((candidate) => candidate.id === editingItemId);
-      setForm(toFormValues(item));
-      setError("");
-      setIsImageUploading(false);
-      return;
+      const item = menuItems.find((c) => c.id === editingItemId);
+      setForm(toFormValues(item)); setError(""); setIsImageUploading(false); return;
     }
-
-    setEditingItemId(null);
-    setForm(EMPTY_FORM);
-    setError("");
-    setIsImageUploading(false);
+    setEditingItemId(null); setForm(EMPTY_FORM); setError(""); setIsImageUploading(false);
   }, [editingItemId, menuItems, mode]);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
-
+  async function handleSubmit(e) {
+    e.preventDefault(); setError("");
     const parsedPrice = Number(form.priceRupees);
-
-    if (!restaurant?.id) {
-      setError("Create a restaurant profile before managing menu items.");
-      return;
-    }
-
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
-      setError("Enter a valid menu price in rupees.");
-      return;
-    }
-
-    if (isImageUploading) {
-      setError("Please wait for the image upload to finish.");
-      return;
-    }
+    if (!restaurant?.id) { setError("Create a restaurant before managing menu items."); return; }
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) { setError("Enter a valid price in rupees."); return; }
+    if (isImageUploading) { setError("Please wait for the image upload to finish."); return; }
 
     const payload = {
       restaurantId: restaurant.id,
@@ -234,15 +160,11 @@ export default function OwnerMenuManager({
     };
 
     try {
-      if (mode === "edit" && editingItemId) {
-        await onUpdateItem?.(editingItemId, payload);
-      } else {
-        await onCreateItem?.(payload);
-      }
-
+      if (mode === "edit" && editingItemId) await onUpdateItem?.(editingItemId, payload);
+      else await onCreateItem?.(payload);
       setMode("idle");
-    } catch (submissionError) {
-      setError(submissionError.message || "Unable to save the menu item right now.");
+    } catch (err) {
+      setError(err.message || "Unable to save the menu item right now.");
     }
   }
 
@@ -252,211 +174,131 @@ export default function OwnerMenuManager({
     <div className="card-surface p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Menu operations</p>
-          <h3 className="mt-2 text-xl font-semibold text-[#1a1a1a]">
+          <p className="label-xs">Menu management</p>
+          <h3 className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>
             {restaurant?.name ? `${restaurant.name} menu` : "Restaurant menu"}
           </h3>
-          <p className="mt-2 text-sm text-slate-500">
-            {restaurant?.id
-              ? "Add new dishes and edit existing ones directly from the owner dashboard."
-              : "Create a restaurant profile first, then start building your menu."}
+          <p className="mt-1 text-sm" style={{ color: "var(--ink-secondary)" }}>
+            {restaurant?.id ? "Add and edit dishes from your owner dashboard." : "Create a restaurant first, then build your menu."}
           </p>
         </div>
-
         <button
           type="button"
           disabled={!restaurant?.id}
-          onClick={() => setMode((current) => (current === "create" ? "idle" : "create"))}
-          className="rounded-xl bg-[#01de1a] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => setMode((c) => (c === "create" ? "idle" : "create"))}
+          className="btn-primary"
         >
-          {mode === "create" ? "Close form" : "Add item"}
+          {mode === "create" ? "Close form" : "+ Add item"}
         </button>
       </div>
 
-      {notice ? (
-        <div className="mt-5 rounded-2xl border border-black/10 bg-[#f8f9fa] px-4 py-3 text-sm text-slate-600">
+      {notice && (
+        <div className="mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)", color: "var(--brand-dark)" }}>
           {notice}
         </div>
-      ) : null}
+      )}
 
-      {mode !== "idle" ? (
-        <form onSubmit={handleSubmit} className="mt-6 grid gap-4 rounded-3xl bg-[#f8f9fa] p-5 md:grid-cols-2">
+      {mode !== "idle" && (
+        <form onSubmit={handleSubmit} className="mt-5 grid gap-4 rounded-2xl p-5 md:grid-cols-2" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
           <div className="md:col-span-2">
             <ImageUploader
               label="Item photo"
               existingUrl={form.image_url}
-              onUpload={(url) => setForm((current) => ({ ...current, image_url: url }))}
+              onUpload={(url) => setForm((c) => ({ ...c, image_url: url }))}
               onUploadingChange={setIsImageUploading}
             />
           </div>
 
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm text-slate-500">Item name</span>
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-              placeholder="Hyderabadi Chicken Biryani"
-            />
+          <div className="md:col-span-2">
+            <label className="input-label">Item name</label>
+            <input type="text" required value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} className="input" placeholder="Hyderabadi Chicken Biryani" />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="input-label">Description</label>
+            <textarea rows="2" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} className="input resize-none" placeholder="Tell customers what makes this special." />
+          </div>
+
+          <div>
+            <label className="input-label">Category</label>
+            <input type="text" value={form.category} onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))} className="input" placeholder="Mains" />
+          </div>
+
+          <div>
+            <label className="input-label">Price (₹)</label>
+            <input type="number" min="0" step="0.01" required value={form.priceRupees} onChange={(e) => setForm((c) => ({ ...c, priceRupees: e.target.value }))} className="input" placeholder="299" />
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <input type="checkbox" checked={form.isVeg} onChange={(e) => setForm((c) => ({ ...c, isVeg: e.target.checked }))} className="h-4 w-4 accent-green-600" />
+            <span className="text-sm" style={{ color: "var(--ink-secondary)" }}>Mark as <strong style={{ color: "var(--ink)" }}>vegetarian</strong></span>
           </label>
 
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm text-slate-500">Description</span>
-            <textarea
-              rows="3"
-              value={form.description}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, description: event.target.value }))
-              }
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-              placeholder="Tell customers what makes this item special."
-            />
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <input type="checkbox" checked={form.isAvailable} onChange={(e) => setForm((c) => ({ ...c, isAvailable: e.target.checked }))} className="h-4 w-4 accent-green-600" />
+            <span className="text-sm" style={{ color: "var(--ink-secondary)" }}>Show as <strong style={{ color: "var(--ink)" }}>available</strong></span>
           </label>
 
-          <label className="block">
-            <span className="mb-2 block text-sm text-slate-500">Category</span>
-            <input
-              type="text"
-              value={form.category}
-              onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-              placeholder="Mains"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm text-slate-500">Price in rupees</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              required
-              value={form.priceRupees}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, priceRupees: event.target.value }))
-              }
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#01de1a]"
-              placeholder="299"
-            />
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-slate-600 transition hover:border-[#01de1a]">
-            <input
-              type="checkbox"
-              checked={form.isVeg}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, isVeg: event.target.checked }))
-              }
-              className="h-4 w-4 accent-[#01de1a]"
-            />
-            Mark as <strong>vegetarian</strong>
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-slate-600 transition hover:border-[#01de1a]">
-            <input
-              type="checkbox"
-              checked={form.isAvailable}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, isAvailable: event.target.checked }))
-              }
-              className="h-4 w-4 accent-[#01de1a]"
-            />
-            Show as <strong>available</strong>
-          </label>
-
-          {error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">
+          {error && (
+            <div className="rounded-xl px-4 py-3 text-sm md:col-span-2" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
               {error}
             </div>
-          ) : null}
+          )}
 
           <div className="flex flex-wrap gap-3 md:col-span-2">
-            <button
-              type="submit"
-              disabled={isBusy}
-              className="rounded-xl bg-[#01de1a] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isImageUploading
-                ? "Uploading photo..."
-                : isSubmitting
-                  ? "Saving..."
-                  : mode === "edit"
-                    ? "Save changes"
-                    : "Create item"}
+            <button type="submit" disabled={isBusy} className="btn-primary">
+              {isImageUploading ? "Uploading photo..." : isSubmitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create item"}
             </button>
-
-            <button
-              type="button"
-              onClick={() => setMode("idle")}
-              className="rounded-xl border border-black/10 px-5 py-3 text-sm text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
-            >
-              Cancel
-            </button>
+            <button type="button" onClick={() => setMode("idle")} className="btn-secondary">Cancel</button>
           </div>
         </form>
-      ) : null}
+      )}
 
-      <div className="mt-6 space-y-3">
+      {/* Items list */}
+      <div className="mt-5 space-y-3">
         {menuItems.length === 0 ? (
-          <div className="rounded-2xl bg-[#f8f9fa] p-4 text-sm leading-7 text-slate-500">
-            No menu items yet. Use the add item form to publish the first dish.
+          <div className="rounded-2xl p-8 text-center" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
+            <p className="text-3xl">🍽️</p>
+            <p className="mt-3 text-sm font-semibold" style={{ color: "var(--ink)" }}>No menu items yet</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>Use the form above to add your first dish.</p>
           </div>
         ) : (
           menuItems.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col gap-3 rounded-2xl bg-[#f8f9fa] p-4 lg:flex-row lg:items-center lg:justify-between"
+              className="flex flex-col gap-3 rounded-xl p-4 lg:flex-row lg:items-center lg:justify-between"
+              style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
             >
               <div className="flex items-center gap-4">
                 {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="h-16 w-16 flex-shrink-0 rounded-xl object-cover shadow-sm"
-                  />
+                  <img src={item.image_url} alt={item.name} className="h-14 w-14 flex-shrink-0 rounded-xl object-cover" />
                 ) : (
-                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-slate-200 text-2xl">
-                    Plate
+                  <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: "var(--border)" }}>
+                    🍽️
                   </div>
                 )}
-
                 <div>
-                  <h4 className="font-semibold text-[#1a1a1a]">{item.name}</h4>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {item.category} · Rs {(Number(item.price_paise || 0) / 100).toFixed(2)}
+                  <h4 className="font-semibold" style={{ color: "var(--ink)" }}>{item.name}</h4>
+                  <p className="mt-0.5 text-sm" style={{ color: "var(--ink-muted)" }}>
+                    {item.category} · ₹{(Number(item.price_paise || 0) / 100).toFixed(0)}
                   </p>
-                  {item.description ? (
-                    <p className="mt-1 line-clamp-1 text-xs text-slate-400">{item.description}</p>
-                  ) : null}
+                  {item.description && (
+                    <p className="mt-0.5 line-clamp-1 text-xs" style={{ color: "var(--ink-muted)" }}>{item.description}</p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span
-                  className={`rounded-full px-3 py-1 font-medium ${
-                    item.is_available ? "bg-[#e8f9eb] text-[#01de1a]" : "bg-slate-200 text-slate-600"
-                  }`}
-                >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`badge ${item.is_available ? "badge-green" : "badge-stone"}`}>
                   {item.is_available ? "Available" : "Paused"}
                 </span>
-
-                <span
-                  className={`rounded-full px-3 py-1 font-medium ${
-                    item.is_veg ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
-                  }`}
-                >
+                <span className={`badge ${item.is_veg ? "badge-green" : "badge-red"}`}>
                   {item.is_veg ? "Veg" : "Non-veg"}
                 </span>
-
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditingItemId(item.id);
-                    setMode("edit");
-                  }}
-                  className="rounded-xl border border-black/10 px-4 py-2 text-sm text-slate-600 transition hover:border-[#01de1a] hover:text-[#01de1a]"
+                  onClick={() => { setEditingItemId(item.id); setMode("edit"); }}
+                  className="btn-secondary text-xs py-1.5 px-3"
                 >
                   Edit
                 </button>

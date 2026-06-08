@@ -7,17 +7,19 @@ import SearchBar from "../components/customer/SearchBar";
 import { fetchLocalities, fetchRestaurants } from "../services/restaurantService";
 import { useUiStore } from "../store/uiStore";
 
-function RestaurantCardSkeleton({ index }) {
+function RestaurantCardSkeleton() {
   return (
-    <div key={`skeleton-${index}`} className="card-surface overflow-hidden animate-pulse">
-      <div className="h-40 w-full bg-slate-200" />
-      <div className="px-5 pb-5 pt-10">
-        <div className="h-14 w-14 -translate-y-1/2 rounded-full border-4 border-white bg-slate-200 shadow-md" />
-        <div className="-mt-2 space-y-3">
-          <div className="h-5 w-2/3 rounded bg-slate-200" />
-          <div className="h-4 w-1/3 rounded bg-slate-200" />
-          <div className="h-4 w-5/6 rounded bg-slate-200" />
+    <div className="card overflow-hidden animate-pulse">
+      <div className="h-40 w-full" style={{ background: "var(--muted)" }} />
+      <div className="p-5 space-y-3">
+        <div className="flex gap-3">
+          <div className="h-11 w-11 rounded-xl flex-shrink-0" style={{ background: "var(--muted)" }} />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-3/4 rounded-lg" style={{ background: "var(--muted)" }} />
+            <div className="h-3 w-1/2 rounded-lg" style={{ background: "var(--muted)" }} />
+          </div>
         </div>
+        <div className="h-3 w-5/6 rounded-lg" style={{ background: "var(--muted)" }} />
       </div>
     </div>
   );
@@ -47,131 +49,112 @@ export default function CustomerDashboardPage() {
     let isMounted = true;
     setInitialLoadComplete(false);
 
-    async function loadInitialDiscovery() {
-      setLoading(true);
-      setError("");
+    async function loadInitial() {
+      setLoading(true); setError("");
       try {
-        const [nextLocalities, nextRestaurants] = await Promise.all([
-          fetchLocalities(),
-          fetchRestaurants("", "")
-        ]);
+        const [locs, rests] = await Promise.all([fetchLocalities(), fetchRestaurants("", "")]);
         if (!isMounted) return;
-        setLocalities(Array.isArray(nextLocalities) ? nextLocalities : []);
-        setRestaurants(Array.isArray(nextRestaurants) ? nextRestaurants : []);
+        setLocalities(Array.isArray(locs) ? locs : []);
+        setRestaurants(Array.isArray(rests) ? rests : []);
         lastAppliedFilterKeyRef.current = "__all__";
         setInitialLoadComplete(true);
       } catch (err) {
         if (!isMounted) return;
-        setLocalities([]);
-        setRestaurants([]);
-        setError(err.message || "Unable to load restaurant discovery right now.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadInitialDiscovery();
-    return () => { isMounted = false; };
-  }, [retryToken]);
-
-  useEffect(() => {
-    if (!initialLoadComplete) return;
-
-    const filterKey = `${selectedLocality}__${debouncedSearchQuery}`;
-    if (filterKey === lastAppliedFilterKeyRef.current) return;
-
-    let isMounted = true;
-
-    async function loadFilteredRestaurants() {
-      setLoading(true);
-      setError("");
-      try {
-        const next = await fetchRestaurants(selectedLocality, debouncedSearchQuery);
-        if (!isMounted) return;
-        setRestaurants(Array.isArray(next) ? next : []);
-        lastAppliedFilterKeyRef.current = filterKey;
-      } catch (err) {
-        if (!isMounted) return;
-        setRestaurants([]);
+        setLocalities([]); setRestaurants([]);
         setError(err.message || "Unable to load restaurants right now.");
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
-    loadFilteredRestaurants();
+    loadInitial();
+    return () => { isMounted = false; };
+  }, [retryToken]);
+
+  useEffect(() => {
+    if (!initialLoadComplete) return;
+    const filterKey = `${selectedLocality}__${debouncedSearchQuery}`;
+    if (filterKey === lastAppliedFilterKeyRef.current) return;
+
+    let isMounted = true;
+
+    async function loadFiltered() {
+      setLoading(true); setError("");
+      try {
+        const rests = await fetchRestaurants(selectedLocality, debouncedSearchQuery);
+        if (!isMounted) return;
+        setRestaurants(Array.isArray(rests) ? rests : []);
+        lastAppliedFilterKeyRef.current = filterKey;
+      } catch (err) {
+        if (!isMounted) return;
+        setRestaurants([]);
+        setError(err.message || "Unable to load restaurants.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadFiltered();
     return () => { isMounted = false; };
   }, [debouncedSearchQuery, initialLoadComplete, selectedLocality]);
 
   return (
     <Shell
-      title={`Discover the best of ${activeCity}`}
-      subtitle="Search restaurants, browse by locality, and open live menus without leaving the customer dashboard flow."
+      title={`Discover ${activeCity}`}
+      subtitle="Search restaurants, browse by locality, and open live menus."
       actions={
-        <button
-          type="button"
-          onClick={() => navigate("/orders")}
-          className="rounded-xl bg-[#01de1a] px-5 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
-        >
+        <button type="button" onClick={() => navigate("/orders")} className="btn-secondary">
           Open cart
         </button>
       }
     >
-      <section className="card-surface p-6">
-        <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Search and discover</p>
-        <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">Find a restaurant near you</h2>
-        <p className="mt-2 text-sm leading-7 text-slate-500">
-          Search by restaurant name or narrow the list to a specific Hyderabad locality.
-        </p>
-        <div className="mt-6">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
-        </div>
-        <div className="mt-4">
-          <LocalityFilter
-            localities={localities}
-            selectedLocality={selectedLocality}
-            onSelect={setSelectedLocality}
-          />
+      {/* Search + filter */}
+      <section className="card-surface p-5">
+        <p className="label-xs mb-3">Find a restaurant</p>
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <div className="mt-3">
+          <LocalityFilter localities={localities} selectedLocality={selectedLocality} onSelect={setSelectedLocality} />
         </div>
       </section>
 
+      {/* Results */}
       <section className="space-y-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div className="flex items-end justify-between">
           <div>
             <h2 className="section-title">Restaurants</h2>
-            <p className="muted-copy mt-2">
+            <p className="muted-copy mt-1">
               {loading
-                ? "Loading restaurants..."
+                ? "Loading..."
                 : error
-                  ? "Restaurant discovery hit a problem."
-                  : restaurants.length === 0
-                    ? "No restaurants found in this area yet"
-                    : `${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"} available`}
+                ? "Something went wrong."
+                : restaurants.length === 0
+                ? "No restaurants found"
+                : `${restaurants.length} restaurant${restaurants.length === 1 ? "" : "s"} available`}
             </p>
           </div>
         </div>
 
         {error ? (
           <div className="card-surface p-6">
-            <p className="text-sm text-rose-700">{error}</p>
-            <button
-              type="button"
-              onClick={() => setRetryToken((c) => c + 1)}
-              className="mt-4 rounded-xl bg-[#01de1a] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
-            >
+            <p className="text-sm" style={{ color: "#991b1b" }}>{error}</p>
+            <button type="button" onClick={() => setRetryToken((c) => c + 1)} className="btn-primary mt-4">
               Retry
             </button>
           </div>
         ) : loading ? (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, i) => <RestaurantCardSkeleton key={i} index={i} />)}
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
           </div>
         ) : restaurants.length === 0 ? (
-          <div className="card-surface p-6 text-sm leading-7 text-slate-500">
-            No restaurants found in this area yet.
+          <div className="card-surface p-10 text-center">
+            <p className="text-4xl">🔍</p>
+            <p className="mt-3 font-semibold" style={{ color: "var(--ink)" }}>No restaurants found</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--ink-muted)" }}>
+              Try a different locality or search term.
+            </p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {restaurants.map((restaurant) => (
               <RestaurantCard
                 key={restaurant.id}

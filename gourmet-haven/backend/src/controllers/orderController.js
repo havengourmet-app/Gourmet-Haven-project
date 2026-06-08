@@ -212,7 +212,6 @@ export async function listCustomerOrders(req, res) {
 export async function fetchOrder(req, res) {
   if (!supabaseAdmin) {
     const sampleOrder = decorateOrder(SAMPLE_ORDERS[0]);
-
     return res.json({
       order: sampleOrder.id === req.params.orderId ? sampleOrder : null
     });
@@ -222,7 +221,13 @@ export async function fetchOrder(req, res) {
     .from("orders")
     .select(ORDER_SELECT)
     .eq("id", req.params.orderId)
-    .eq("customer_id", req.user.id)
+    // Removed: .eq("customer_id", req.user.id)
+    // Reason: owner/delivery may also need to fetch a specific order.
+    // Security is maintained because:
+    // - Customers can only see their own orders via the RLS policy + auth token
+    // - The supabaseAdmin bypasses RLS but we verify auth via requireAuth middleware
+    // - The order ID is a UUID — not guessable
+    // - For extra security, verify the requester has some relation to the order:
     .single();
 
   if (error || !data) {
@@ -232,11 +237,35 @@ export async function fetchOrder(req, res) {
     });
   }
 
+  // Authorization check: only the customer, the restaurant owner, or assigned delivery partner
+  // can view this order
+  const userId = req.user.id;
+  const isCustomer = data.customer_id === userId;
+  
+  // Check if owner of the restaurant
+  let isOwner = false;
+  if (data.restaurant_id) {
+    const { data: restaurant } = await supabaseAdmin
+      .from("restaurants")
+      .select("owner_id")
+      .eq("id", data.restaurant_id)
+      .single();
+    isOwner = restaurant?.owner_id === userId;
+  }
+
+  const isDelivery = data.assigned_delivery_id === userId;
+
+  if (!isCustomer && !isOwner && !isDelivery) {
+    return res.status(403).json({
+      success: false,
+      message: "You do not have access to this order."
+    });
+  }
+
   res.json({
     order: decorateOrder(data)
   });
 }
-
 export async function listOwnerOrders(req, res) {
   if (!supabaseAdmin) {
     return res.json({

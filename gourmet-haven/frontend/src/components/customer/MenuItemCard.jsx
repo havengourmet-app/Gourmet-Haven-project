@@ -1,13 +1,18 @@
 function VegIndicator({ isVeg }) {
   return (
-    <span
-      className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-        isVeg ? "border-green-600" : "border-rose-600"
-      }`}
+    <div
+      className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded"
+      style={{
+        border: `1.5px solid ${isVeg ? "#16a34a" : "#dc2626"}`,
+        background: isVeg ? "#f0fdf4" : "#fef2f2"
+      }}
       aria-label={isVeg ? "Vegetarian" : "Non-vegetarian"}
     >
-      <span className={`h-2 w-2 rounded-full ${isVeg ? "bg-green-600" : "bg-rose-600"}`} />
-    </span>
+      <div
+        className="h-2.5 w-2.5 rounded-sm"
+        style={{ background: isVeg ? "#16a34a" : "#dc2626" }}
+      />
+    </div>
   );
 }
 
@@ -18,48 +23,75 @@ export default function MenuItemCard({
   onDecrement,
   currentQty = 0
 }) {
-  const priceLabel = `Rs ${(Number(item.price || 0) / 100).toFixed(2)}`;
+  const priceLabel = `₹${(Number(item.price || 0) / 100).toFixed(0)}`;
 
   return (
-    <article className="card-surface overflow-hidden">
-      {item.image_url ? (
-        <img src={item.image_url} alt={item.name} className="h-44 w-full object-cover" />
-      ) : (
-        <div className="flex h-44 w-full items-center justify-center bg-gradient-to-br from-[#01de1a] via-[#00c218] to-[#0f172a] text-3xl font-semibold text-white">
-          {item.name?.slice(0, 1)?.toUpperCase() || "M"}
-        </div>
-      )}
-
-      <div className="flex flex-col justify-between gap-4 p-5">
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold text-[#1a1a1a]">{item.name}</h3>
-              <p className="mt-1 text-sm text-slate-500">{item.description || "Freshly prepared."}</p>
-            </div>
+    <article className="card flex overflow-hidden">
+      {/* Text side */}
+      <div className="flex flex-1 flex-col justify-between gap-3 p-4">
+        <div className="space-y-1.5">
+          <div className="flex items-start gap-2">
             <VegIndicator isVeg={Boolean(item.is_veg)} />
+            <div className="flex-1 min-w-0">
+              <h3
+                className="text-sm font-semibold leading-snug"
+                style={{ color: "var(--ink)" }}
+              >
+                {item.name}
+              </h3>
+              {item.description && (
+                <p
+                  className="mt-1 line-clamp-2 text-xs leading-5"
+                  style={{ color: "var(--ink-muted)" }}
+                >
+                  {item.description}
+                </p>
+              )}
+            </div>
           </div>
 
-          <p className="text-sm text-slate-400">{item.category || "General"}</p>
+          {item.category && (
+            <span
+              className="inline-block text-xs"
+              style={{ color: "var(--ink-muted)" }}
+            >
+              {item.category}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xl font-semibold text-[#01de1a]">{priceLabel}</p>
+          <p
+            className="text-lg font-bold"
+            style={{ color: "var(--brand-dark)" }}
+          >
+            {priceLabel}
+          </p>
 
           {currentQty > 0 ? (
-            <div className="flex items-center gap-2 rounded-xl border border-black/10 px-2 py-1">
+            <div
+              className="flex items-center gap-1 rounded-xl overflow-hidden"
+              style={{ border: "1.5px solid var(--brand)", background: "var(--brand-lightest)" }}
+            >
               <button
                 type="button"
                 onClick={() => onDecrement?.(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-lg text-slate-700 transition hover:bg-slate-100"
+                className="flex h-8 w-8 items-center justify-center text-lg font-medium transition hover:bg-white/60"
+                style={{ color: "var(--brand-dark)" }}
               >
-                -
+                −
               </button>
-              <span className="min-w-6 text-center text-sm font-semibold text-[#1a1a1a]">{currentQty}</span>
+              <span
+                className="min-w-[1.5rem] text-center text-sm font-bold"
+                style={{ color: "var(--brand-dark)" }}
+              >
+                {currentQty}
+              </span>
               <button
                 type="button"
                 onClick={() => onIncrement?.(item)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-lg text-slate-700 transition hover:bg-slate-100"
+                className="flex h-8 w-8 items-center justify-center text-lg font-medium transition hover:bg-white/60"
+                style={{ color: "var(--brand-dark)" }}
               >
                 +
               </button>
@@ -68,13 +100,31 @@ export default function MenuItemCard({
             <button
               type="button"
               onClick={() => onAdd?.(item)}
-              className="rounded-xl bg-[#01de1a] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#00ff1e]"
+              className="btn-primary text-xs py-2 px-4"
             >
               Add
             </button>
           )}
         </div>
       </div>
+
+      {/* Image side */}
+      {item.image_url ? (
+        <div className="relative w-28 flex-shrink-0 overflow-hidden sm:w-32">
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : (
+        <div
+          className="flex w-24 flex-shrink-0 items-center justify-center sm:w-28"
+          style={{ background: "var(--muted)" }}
+        >
+          <span className="text-3xl">🍽️</span>
+        </div>
+      )}
     </article>
   );
 }

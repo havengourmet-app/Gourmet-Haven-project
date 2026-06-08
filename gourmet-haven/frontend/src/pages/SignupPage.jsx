@@ -3,127 +3,157 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const ROLE_OPTIONS = [
-  { value: "customer", label: "Customer" },
-  { value: "owner", label: "Owner" },
-  { value: "delivery", label: "Delivery" }
+  { value: "customer", label: "Customer", description: "Order food from restaurants" },
+  { value: "owner", label: "Restaurant Owner", description: "Manage your restaurant & menu" },
+  { value: "delivery", label: "Delivery Partner", description: "Handle pickups and deliveries" }
 ];
+
+const inputStyle = {
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  color: "#f5f4f0"
+};
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const { signUp, isLoading, error, clearError } = useAuth();
   const [notice, setNotice] = useState("");
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    role: "customer"
-  });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", role: "customer" });
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSubmit(e) {
+    e.preventDefault();
     clearError();
     setNotice("");
-
     try {
       await signUp(form);
-      setNotice("Account created. Check your email for the confirmation link, then sign in.");
-      setTimeout(() => navigate("/login"), 1200);
-    } catch {
-      return;
-    }
+      setNotice("Account created! Check your email for a confirmation link, then sign in.");
+      setTimeout(() => navigate("/login"), 2000);
+    } catch { return; }
+  }
+
+  function focusStyle(e) {
+    e.target.style.borderColor = "#16a34a";
+    e.target.style.boxShadow = "0 0 0 3px rgba(22,163,74,0.15)";
+  }
+  function blurStyle(e) {
+    e.target.style.borderColor = "rgba(255,255,255,0.10)";
+    e.target.style.boxShadow = "none";
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f1115] px-4 py-10">
-      <div className="w-full max-w-xl rounded-[1.75rem] bg-white/10 p-8 text-white backdrop-blur">
-        <div className="mb-8">
-          <Link to="/" className="text-sm font-semibold text-white/80 hover:text-[#01de1a]">
-            Back to landing page
+    <div
+      className="flex min-h-screen items-center justify-center px-4 py-12"
+      style={{ background: "#0f1009" }}
+    >
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <Link to="/" className="inline-flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white" style={{ background: "#16a34a" }}>
+              Q
+            </div>
+            <span className="text-xl font-bold" style={{ color: "#f5f4f0" }}>QuickDyne</span>
           </Link>
-          <h1 className="mt-4 text-3xl font-semibold">Create your account</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-300">
-            Start as a customer, owner, or delivery partner. Supabase Auth will manage sign-up and session handling.
+          <h1 className="mt-6 text-2xl font-bold" style={{ color: "#f5f4f0" }}>Create your account</h1>
+          <p className="mt-1 text-sm" style={{ color: "rgba(245,244,240,0.50)" }}>
+            Choose your role and get started
           </p>
         </div>
 
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm text-slate-200">Full name</span>
-            <input
-              type="text"
-              required
-              value={form.fullName}
-              onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-[#01de1a]"
-              placeholder="Enter your name"
-            />
-          </label>
+        <div
+          className="rounded-2xl p-8"
+          style={{ background: "#1a1d13", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* Role selector */}
+            <div>
+              <label className="mb-2 block text-sm font-medium" style={{ color: "rgba(245,244,240,0.70)" }}>
+                I am a...
+              </label>
+              <div className="grid gap-2">
+                {ROLE_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition"
+                    style={{
+                      background: form.role === opt.value ? "rgba(22,163,74,0.12)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${form.role === opt.value ? "rgba(22,163,74,0.40)" : "rgba(255,255,255,0.08)"}`
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value={opt.value}
+                      checked={form.role === opt.value}
+                      onChange={(e) => setForm((c) => ({ ...c, role: e.target.value }))}
+                      className="accent-green-500"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "#f5f4f0" }}>{opt.label}</p>
+                      <p className="text-xs" style={{ color: "rgba(245,244,240,0.45)" }}>{opt.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-sm text-slate-200">Email</span>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-[#01de1a]"
-              placeholder="you@example.com"
-            />
-          </label>
+            {[
+              { key: "fullName", label: "Full name", type: "text", placeholder: "Your name" },
+              { key: "email", label: "Email", type: "email", placeholder: "you@example.com" },
+              { key: "password", label: "Password", type: "password", placeholder: "At least 8 characters", minLength: 8 }
+            ].map(({ key, label, type, placeholder, minLength }) => (
+              <div key={key}>
+                <label className="mb-1.5 block text-sm font-medium" style={{ color: "rgba(245,244,240,0.70)" }}>
+                  {label}
+                </label>
+                <input
+                  type={type}
+                  required
+                  minLength={minLength}
+                  value={form[key]}
+                  onChange={(e) => setForm((c) => ({ ...c, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
+                  style={inputStyle}
+                  onFocus={focusStyle}
+                  onBlur={blurStyle}
+                />
+              </div>
+            ))}
 
-          <label className="block">
-            <span className="mb-2 block text-sm text-slate-200">Role</span>
-            <select
-              value={form.role}
-              onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-[#01de1a]"
+            {error && (
+              <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.25)", color: "#fca5a5" }}>
+                {error}
+              </div>
+            )}
+
+            {notice && (
+              <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.25)", color: "#4ade80" }}>
+                {notice}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl py-3 text-sm font-semibold text-white transition disabled:opacity-55"
+              style={{ background: "#16a34a", border: "1.5px solid #15803d" }}
             >
-              {ROLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value} className="text-black">
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              {isLoading ? "Creating account..." : "Create account"}
+            </button>
+          </form>
 
-          <label className="block">
-            <span className="mb-2 block text-sm text-slate-200">Password</span>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-[#01de1a]"
-              placeholder="At least 8 characters"
-            />
-          </label>
+          <p className="mt-6 text-center text-sm" style={{ color: "rgba(245,244,240,0.45)" }}>
+            Already have an account?{" "}
+            <Link to="/login" className="font-semibold" style={{ color: "#4ade80" }}>
+              Sign in
+            </Link>
+          </p>
+        </div>
 
-          {error ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 md:col-span-2">
-              {error}
-            </div>
-          ) : null}
-
-          {notice ? (
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 md:col-span-2">
-              {notice}
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="md:col-span-2 w-full rounded-2xl bg-[#01de1a] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[#00ff1e] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? "Creating account..." : "Sign Up"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-sm text-slate-300">
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-[#01de1a]">
-            Login
+        <p className="mt-6 text-center">
+          <Link to="/" className="text-xs" style={{ color: "rgba(245,244,240,0.35)" }}>
+            ← Back to home
           </Link>
         </p>
       </div>

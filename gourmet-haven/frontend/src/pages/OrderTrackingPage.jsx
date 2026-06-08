@@ -30,39 +30,29 @@ export default function OrderTrackingPage() {
     let isMounted = true;
 
     async function loadOrder() {
-      setLoading(true);
-      setError("");
-
+      setLoading(true); setError("");
       try {
         const nextOrder = await fetchOrder(orderId);
         if (!isMounted) return;
-
         setOrder(nextOrder);
 
         if (nextOrder?.status === "delivered") {
-          const existingReview = await fetchOrderReview(orderId);
+          const existing = await fetchOrderReview(orderId);
           if (!isMounted) return;
-
-          if (existingReview) {
-            setAlreadyReviewed(true);
-          } else {
-            setShowRatingModal(true);
-          }
+          if (existing) setAlreadyReviewed(true);
+          else setShowRatingModal(true);
         }
-      } catch (loadError) {
+      } catch (err) {
         if (!isMounted) return;
         setOrder(null);
-        setError(loadError.message || "Unable to load the order right now.");
+        setError(err.message || "Unable to load the order right now.");
       } finally {
         if (isMounted) setLoading(false);
       }
     }
 
     if (orderId) loadOrder();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [orderId]);
 
   useRealtimeOrders({
@@ -70,119 +60,112 @@ export default function OrderTrackingPage() {
     filters: [{ filter: `id=eq.${orderId}` }],
     onOrderChange: async (payload) => {
       if (!payload?.new) return;
-
       const nextStatus = payload.new.status;
-
-      setOrder((current) =>
-        current
-          ? { ...current, status: nextStatus || current.status, updated_at: payload.new.updated_at || current.updated_at }
-          : current
-      );
-
+      setOrder((curr) => curr ? { ...curr, status: nextStatus || curr.status, updated_at: payload.new.updated_at || curr.updated_at } : curr);
       if (nextStatus === "delivered" && !alreadyReviewed && !reviewSubmitted) {
         try {
-          const existingReview = await fetchOrderReview(orderId);
-          if (!existingReview) setShowRatingModal(true);
+          const existing = await fetchOrderReview(orderId);
+          if (!existing) setShowRatingModal(true);
           else setAlreadyReviewed(true);
-        } catch {
-          setShowRatingModal(true);
-        }
+        } catch { setShowRatingModal(true); }
       }
     }
   });
 
-  function handleReviewSubmitted() {
-    setShowRatingModal(false);
-    setReviewSubmitted(true);
-  }
-
   return (
-    <Shell
-      title="Track your order"
-      subtitle="Follow the live order journey from confirmation to delivery."
-    >
+    <Shell title="Track your order" subtitle="Follow the live journey from confirmation to delivery.">
       {loading ? (
-        <div className="card-surface p-6 text-sm text-slate-500">Loading order details...</div>
+        <div className="card-surface p-6 text-sm" style={{ color: "var(--ink-muted)" }}>Loading order details...</div>
       ) : error ? (
-        <div className="card-surface p-6">
-          <p className="text-sm text-rose-700">{error}</p>
-        </div>
+        <div className="card-surface p-6 text-sm" style={{ color: "#991b1b" }}>{error}</div>
       ) : !order ? (
-        <div className="card-surface p-6 text-sm text-slate-500">Order not found.</div>
+        <div className="card-surface p-6 text-sm" style={{ color: "var(--ink-muted)" }}>Order not found.</div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {/* Status card */}
           <section className="card-surface p-6">
-            <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Live status</p>
-            <h2 className="mt-3 text-2xl font-semibold text-[#1a1a1a]">
-              {order.restaurant?.name || "QuickDyne order"}
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">Order ID: {order.id}</p>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="label-xs">Live status</p>
+                <h2 className="mt-1 text-2xl font-semibold" style={{ color: "var(--ink)" }}>
+                  {order.restaurant?.name || "Your order"}
+                </h2>
+                <p className="mt-1 text-xs font-mono" style={{ color: "var(--ink-muted)" }}>
+                  Order {order.id?.slice(0, 8).toUpperCase()}
+                </p>
+              </div>
+
+              {order.status === "delivered" && !alreadyReviewed && !reviewSubmitted && (
+                <button type="button" onClick={() => setShowRatingModal(true)} className="btn-secondary mt-2 sm:mt-0">
+                  ⭐ Rate order
+                </button>
+              )}
+            </div>
 
             <div className="mt-6">
               <OrderStatusStepper currentStatus={order.status} />
             </div>
 
             {order.status === "delivered" && (reviewSubmitted || alreadyReviewed) && (
-              <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {reviewSubmitted
-                  ? "Thanks for your review!"
-                  : "You have already reviewed this order."}
+              <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: "var(--brand-lightest)", border: "1px solid var(--brand-lighter)", color: "var(--brand-dark)" }}>
+                {reviewSubmitted ? "Thanks for your review! 🎉" : "You've already reviewed this order."}
               </div>
-            )}
-
-            {order.status === "delivered" && !alreadyReviewed && !reviewSubmitted && (
-              <button
-                type="button"
-                onClick={() => setShowRatingModal(true)}
-                className="mt-6 rounded-xl border border-[#01de1a] px-4 py-2 text-sm font-medium text-[#01de1a] transition hover:bg-[#01de1a] hover:text-black"
-              >
-                Rate this order
-              </button>
             )}
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+            {/* Items */}
             <div className="card-surface p-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Order summary</p>
-              <div className="mt-5 space-y-4">
+              <p className="label-xs">Order summary</p>
+              <div className="mt-4 space-y-3">
                 {(order.items || []).map((item, index) => (
-                  <div key={`${item.id || item.name}-${index}`} className="rounded-2xl bg-[#f8f9fa] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-semibold text-[#1a1a1a]">{item.name}</h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {item.qty || item.quantity || 0} × {formatPaise(item.price || item.pricePaise || 0)}
-                        </p>
-                      </div>
-                      <p className="text-sm font-medium text-[#1a1a1a]">
-                        {formatPaise((item.price || item.pricePaise || 0) * (item.qty || item.quantity || 0))}
+                  <div
+                    key={`${item.id || item.name}-${index}`}
+                    className="flex items-start justify-between gap-3 rounded-xl p-4"
+                    style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
+                  >
+                    <div>
+                      <p className="font-semibold text-sm" style={{ color: "var(--ink)" }}>{item.name}</p>
+                      <p className="mt-0.5 text-xs" style={{ color: "var(--ink-muted)" }}>
+                        {item.qty || item.quantity || 0} × {formatPaise(item.price || item.pricePaise || 0)}
                       </p>
                     </div>
+                    <p className="text-sm font-semibold flex-shrink-0" style={{ color: "var(--ink)" }}>
+                      {formatPaise((item.price || item.pricePaise || 0) * (item.qty || item.quantity || 0))}
+                    </p>
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Delivery + pricing */}
             <aside className="card-surface h-fit p-6">
-              <p className="text-xs uppercase tracking-[0.24em] text-[#01de1a]">Delivery details</p>
-              <div className="mt-4 rounded-2xl bg-[#f8f9fa] p-4 text-sm leading-7 text-slate-600">
+              <p className="label-xs">Delivery details</p>
+              <div
+                className="mt-3 rounded-xl p-4 text-sm leading-6"
+                style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--ink-secondary)" }}
+              >
                 {formatAddress(order)}
               </div>
 
-              <div className="mt-6 space-y-3 border-t border-black/10 pt-5 text-sm text-slate-500">
-                <div className="flex items-center justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatPaise(order.subtotal_paise)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Delivery fee</span>
-                  <span>{formatPaise(order.delivery_fee_paise)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Platform fee</span>
-                  <span>{formatPaise(order.platform_fee_paise)}</span>
-                </div>
-                <div className="flex items-center justify-between text-base font-semibold text-[#1a1a1a]">
+              <div
+                className="mt-5 space-y-2.5 border-t pt-4 text-sm"
+                style={{ borderColor: "var(--border)" }}
+              >
+                {[
+                  { label: "Subtotal", value: order.subtotal_paise },
+                  { label: "Delivery fee", value: order.delivery_fee_paise },
+                  { label: "Platform fee", value: order.platform_fee_paise }
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex justify-between" style={{ color: "var(--ink-secondary)" }}>
+                    <span>{label}</span>
+                    <span>{formatPaise(value)}</span>
+                  </div>
+                ))}
+                <div
+                  className="flex justify-between border-t pt-2.5 font-bold"
+                  style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                >
                   <span>Total</span>
                   <span>{formatPaise(order.total_paise)}</span>
                 </div>
@@ -196,7 +179,7 @@ export default function OrderTrackingPage() {
         <RatingModal
           order={order}
           onClose={() => setShowRatingModal(false)}
-          onSubmitted={handleReviewSubmitted}
+          onSubmitted={() => { setShowRatingModal(false); setReviewSubmitted(true); }}
         />
       )}
     </Shell>
