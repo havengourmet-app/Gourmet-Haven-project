@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../config/supabaseClient.js";
+import { restaurantHasActiveSubscription } from "../utils/subscriptionAccess.js";
+import { optionalInteger, optionalText, requireText } from "../utils/validation.js";
 
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -14,7 +16,8 @@ function toVisibleRestaurant(restaurant) {
     cuisine_summary: restaurant.cuisine_summary || "",
     logo_url: restaurant.logo_url || null,
     cover_image_url: restaurant.cover_image_url || null,
-    avg_rating: Number(restaurant.avg_rating || 0)
+    avg_rating: Number(restaurant.avg_rating || 0),
+    estimated_delivery_minutes: Number(restaurant.estimated_delivery_minutes || 35)
   };
 }
 
@@ -30,11 +33,11 @@ function groupMenuItemsByCategory(items = []) {
 async function listEligibleRestaurants({ locality, search }) {
   let query = supabaseAdmin
     .from("restaurants")
-    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, is_active")
+    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, estimated_delivery_minutes, subscription_status, is_active")
     .eq("is_active", true);
 
   if (locality) query = query.ilike("locality", locality);
-  if (search) query = query.ilike("name", `%${search}%`);
+  if (search) query = query.or(`name.ilike.%${search}%,cuisine_summary.ilike.%${search}%`);
 
   query = query.order("avg_rating", { ascending: false });
 
@@ -60,8 +63,7 @@ async function listEligibleRestaurants({ locality, search }) {
   return restaurants
     .filter((restaurant) => {
       const subs = subscriptionsByRestaurantId.get(restaurant.id) || [];
-      if (subs.length === 0) return true;
-      return subs.some((s) => s.status === "active");
+      return restaurantHasActiveSubscription(restaurant, subs);
     })
     .map(toVisibleRestaurant)
     .sort((a, b) => Number(b.avg_rating || 0) - Number(a.avg_rating || 0));
@@ -86,11 +88,11 @@ export async function fetchRestaurantDetail(req, res) {
 
   const { data: restaurant, error } = await supabaseAdmin
     .from("restaurants")
-    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, is_active")
+    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, estimated_delivery_minutes, subscription_status, is_active")
     .eq("id", restaurantId)
     .single();
 
-  if (error || !restaurant || !restaurant.is_active) {
+  if (error || !restaurant || !restaurant.is_active || !restaurantHasActiveSubscription(restaurant)) {
     return res.status(404).json({ success: false, message: "Restaurant not found or unavailable." });
   }
 
@@ -104,11 +106,11 @@ export async function fetchRestaurantMenu(req, res) {
 
   const { data: restaurant, error: restaurantError } = await supabaseAdmin
     .from("restaurants")
-    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, is_active")
+    .select("id, name, description, locality, cuisine_summary, logo_url, cover_image_url, avg_rating, estimated_delivery_minutes, subscription_status, is_active")
     .eq("id", req.params.restaurantId)
     .single();
 
-  if (restaurantError || !restaurant || !restaurant.is_active) {
+  if (restaurantError || !restaurant || !restaurant.is_active || !restaurantHasActiveSubscription(restaurant)) {
     return res.status(404).json({
       success: false,
       message: "Restaurant not found or is not currently available."
@@ -173,10 +175,15 @@ export async function createRestaurant(req, res) {
   const payload = {
     id: randomUUID(),
     owner_id: req.profile?.id || req.user.id,
-    name: req.body.name,
-    city: req.body.city || "Hyderabad",
-    locality: normalizeText(req.body.locality),
-    cuisine_summary: req.body.cuisineSummary || "",
+    name: requireText(req.body.name, "name", { maxLength: 120 }),
+    city: optionalText(req.body.city, "city", { defaultValue: "Hyderabad", maxLength: 80 }) || "Hyderabad",
+    locality: optionalText(req.body.locality, "locality", { maxLength: 80 }),
+    cuisine_summary: optionalText(req.body.cuisineSummary, "cuisineSummary", { maxLength: 160 }),
+    estimated_delivery_minutes: optionalInteger(req.body.estimatedDeliveryMinutes, "estimatedDeliveryMinutes", {
+      defaultValue: 35,
+      min: 10,
+      max: 120
+    }),
     logo_url: req.body.logo_url ?? req.body.logoUrl ?? null,
     cover_image_url: req.body.cover_image_url ?? req.body.coverImageUrl ?? null,
     subscription_status: "inactive",
@@ -195,11 +202,23 @@ export async function createRestaurant(req, res) {
 
 export async function updateRestaurant(req, res) {
   const patch = {
-    ...(typeof req.body.name !== "undefined" ? { name: req.body.name } : {}),
-    ...(typeof req.body.city !== "undefined" ? { city: req.body.city } : {}),
-    ...(typeof req.body.locality !== "undefined" ? { locality: normalizeText(req.body.locality) } : {}),
-    ...(typeof req.body.cuisineSummary !== "undefined" ? { cuisine_summary: req.body.cuisineSummary } : {}),
-    ...(typeof req.body.cuisine_summary !== "undefined" ? { cuisine_summary: req.body.cuisine_summary } : {}),
+    ...(typeof req.body.name !== "undefined" ? { name: requireText(req.body.name, "name", { maxLength: 120 }) } : {}),
+    ...(typeof req.body.city !== "undefined" ? { city: optionalText(req.body.city, "city", { maxLength: 80 }) } : {}),
+    ...(typeof req.body.locality !== "undefined" ? { locality: optionalText(req.body.locality, "locality", { maxLength: 80 }) } : {}),
+    ...(typeof req.body.cuisineSummary !== "undefined"
+      ? { cuisine_summary: optionalText(req.body.cuisineSummary, "cuisineSummary", { maxLength: 160 }) }
+      : {}),
+    ...(typeof req.body.cuisine_summary !== "undefined"
+      ? { cuisine_summary: optionalText(req.body.cuisine_summary, "cuisine_summary", { maxLength: 160 }) }
+      : {}),
+    ...(typeof req.body.estimatedDeliveryMinutes !== "undefined"
+      ? {
+          estimated_delivery_minutes: optionalInteger(req.body.estimatedDeliveryMinutes, "estimatedDeliveryMinutes", {
+            min: 10,
+            max: 120
+          })
+        }
+      : {}),
     ...(typeof req.body.logo_url !== "undefined" || typeof req.body.logoUrl !== "undefined"
       ? { logo_url: req.body.logo_url ?? req.body.logoUrl ?? null } : {}),
     ...(typeof req.body.cover_image_url !== "undefined" || typeof req.body.coverImageUrl !== "undefined"

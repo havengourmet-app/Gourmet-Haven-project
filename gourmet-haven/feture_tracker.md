@@ -33,7 +33,7 @@ Database:
 - Row Level Security enabled
 - UUID primary keys
 - Money values stored in paise
-- Main tables: `profiles`, `restaurants`, `menu_items`, `addresses`, `subscriptions`, `orders`
+- Main tables: `profiles`, `restaurants`, `menu_items`, `addresses`, `subscriptions`, `orders`, `reviews`, `razorpay_webhook_events`, `order_payment_attempts`
 
 ## Implemented Features
 
@@ -227,11 +227,13 @@ Future scope:
 ### 8. Customer Restaurant Discovery
 
 Status:
-- Partially implemented
+- Implemented
 
 What it does:
 - Shows restaurants to customers on the customer dashboard.
-- Falls back to preserved static restaurant data/images if real backend data is unavailable.
+- Filters to active restaurants with active owner subscriptions.
+- Supports locality filtering and search by restaurant name or cuisine summary.
+- Shows rating and delivery estimate metadata.
 
 How it was achieved:
 - Customer dashboard calls `listRestaurants()`.
@@ -245,30 +247,33 @@ Important files:
 - `backend/src/controllers/restaurantController.js`
 
 Current limitations:
-- Search/filter is not fully implemented.
-- Restaurant detail page is not implemented.
-- Customer menu browsing still needs to be connected fully to real menu items per restaurant.
+- Restaurant locality data depends on owners filling locality fields.
+- Delivery estimate is currently a stored estimate, not live ETA.
 
 Future scope:
-- Add restaurant detail route.
-- Add cuisine/search filters.
 - Show only currently available restaurants and menu items in realtime.
+- Add live operating hours/open-closed scheduling.
 
 ### 9. Cart and Order Placement
 
 Status:
-- Partially implemented
+- Implemented with Razorpay payment
 
 What it does:
 - Lets customers add items to cart.
-- Calculates subtotal, delivery fee, platform fee, and total in paise.
-- Places orders against a restaurant through the backend.
+- Prevents mixing items from multiple restaurants.
+- Calculates cart totals client-side for display, while the backend recalculates trusted totals.
+- Creates Razorpay food-order payment checkouts.
+- Creates the actual application order only after Razorpay payment signature verification.
+- Supports saved-address linkage and delivery-address snapshots.
 
 How it was achieved:
 - Zustand cart store stores items and totals.
-- Orders page uses `createOrder()`.
-- Backend `createOrder()` validates paise values and inserts into `orders`.
-- Current sample/fallback items are transformed into cart items.
+- `CartSidebar` requests `/orders/payment/checkout`.
+- Backend validates restaurant subscription, menu item availability, restaurant ownership, prices, totals, minimum order value, and delivery address.
+- Backend stores a trusted snapshot in `order_payment_attempts`.
+- Frontend opens Razorpay Checkout.
+- Backend verifies `razorpay_order_id`, `razorpay_payment_id`, and `razorpay_signature` before inserting into `orders`.
 
 Important files:
 - `frontend/src/store/cartStore.js`
@@ -278,15 +283,12 @@ Important files:
 - `backend/src/controllers/orderController.js`
 
 Current limitations:
-- Customer address selection is not implemented yet.
-- Menu items are still partially sample-driven.
 - `orders.items` stores item data as JSONB instead of normalized `order_items`.
+- Refund handling is not implemented yet.
 
 Future scope:
-- Add customer address management.
-- Add real restaurant-specific menu browsing.
 - Add `order_items` table and order summary snapshots.
-- Add payment collection for customer orders if required by the business model.
+- Add refunds and payment failure recovery UI.
 
 ### 10. Realtime Order Lifecycle
 
@@ -393,18 +395,22 @@ Future scope:
 ### 13. Owner Subscription Management Panel
 
 Status:
-- Partially implemented
+- Implemented with Razorpay test-mode flow
 
 What it does:
 - Shows subscription state to restaurant owners.
-- Can refresh subscription status.
-- Can start a Razorpay checkout attempt when a plan ID is provided.
+- Shows Starter, Growth, and Pro plans from backend config.
+- Shows current plan, status, billing amount, renewal date, Razorpay ID, and payment failure message.
+- Starts Razorpay Checkout for owner subscriptions.
+- Syncs subscription state to restaurant discovery access.
 
 How it was achieved:
 - Owner dashboard has a subscription panel behind `Manage subscription`.
-- Frontend calls `getSubscriptionStatus()` and `createSubscriptionCheckout()`.
-- Backend exposes `/subscriptions/me`, `/subscriptions/checkout`, and `/subscriptions/verify`.
-- Razorpay config is read from backend env vars.
+- Frontend calls `/subscriptions/plans`, `/subscriptions/me`, `/subscriptions/checkout`, and `/subscriptions/verify`.
+- Backend creates Razorpay subscriptions from named plan keys.
+- Backend verifies checkout signatures and webhook signatures.
+- Webhook events are recorded in `razorpay_webhook_events` for idempotency.
+- Payment failures are stored in `subscriptions.last_payment_error`.
 
 Important files:
 - `frontend/src/pages/OwnerDashboardPage.jsx`
@@ -414,15 +420,12 @@ Important files:
 - `backend/src/config/razorpay.js`
 
 Current limitations:
-- Razorpay webhook verification is not implemented.
-- Subscription activation is not fully automated.
-- Checkout is blocked if Razorpay keys or plan ID are missing.
+- Checkout is blocked until Razorpay test keys and plan IDs are configured.
+- Production live keys are intentionally blocked unless `RAZORPAY_ALLOW_LIVE_MODE=true`.
 
 Future scope:
-- Implement Razorpay webhook endpoint.
-- Verify payment signatures.
-- Add idempotency handling.
-- Sync subscription status into restaurant access/visibility.
+- Add plan downgrade scheduling and cancellation UI.
+- Add invoices/receipts view.
 
 ### 14. Delivery Dashboard and Dispatch Queue
 
@@ -461,15 +464,19 @@ Future scope:
 ### 15. Profile Page
 
 Status:
-- Implemented basic version
+- Implemented
 
 What it does:
-- Displays logged-in user identity, role, email, phone placeholder, and profile UUID.
+- Allows users to edit profile name, phone, and avatar.
+- Lets customers manage saved addresses and view order history.
+- Displays logged-in user identity, role, email, and profile UUID.
 
 How it was achieved:
 - Profile page reads `user` and `profile` from auth store.
 - Role badge component displays user role.
-- Legacy avatar asset is used for visual continuity.
+- Profile updates use `/api/profile`.
+- Customer addresses use `/api/addresses`.
+- Avatar uploads use Cloudinary through authenticated upload API.
 
 Important files:
 - `frontend/src/pages/ProfilePage.jsx`
@@ -477,9 +484,7 @@ Important files:
 - `frontend/src/store/authStore.js`
 
 Current limitations:
-- Profile editing is not implemented.
-- Avatar upload is not implemented.
-- Phone update is not implemented.
+- Phone verification is not implemented.
 
 Future scope:
 - Add edit profile form.
@@ -517,14 +522,15 @@ Future scope:
 ### 17. Cloudinary Upload Preparation
 
 Status:
-- Integration-ready foundation
+- Implemented first version
 
 What it does:
-- Provides config and service placeholders for media upload signing.
+- Uploads images through the backend to Cloudinary.
+- Supports restaurant logos/covers, menu item images, and profile avatars.
 
 How it was achieved:
-- Backend has Cloudinary config and upload route/controller.
-- Frontend has upload service for requesting upload signatures.
+- Backend has Cloudinary config and an authenticated upload route/controller.
+- Frontend has upload service and reusable image uploader UI.
 
 Important files:
 - `backend/src/config/cloudinary.js`
@@ -533,8 +539,8 @@ Important files:
 - `frontend/src/services/uploadService.js`
 
 Current limitations:
-- Upload UI is not implemented.
-- Signed upload response still needs full production hardening.
+- Upload route is authenticated but not yet separated by upload context/folder.
+- Image moderation/scanning is not implemented.
 
 Future scope:
 - Add owner logo upload.
@@ -545,28 +551,26 @@ Future scope:
 ## Known Gaps and Risks
 
 Current MVP gaps:
-- Customer address management is not implemented.
-- Customer menu browsing should be fully connected to real restaurant-specific menu items.
 - `orders.items` should eventually move to a normalized `order_items` table.
 - `order_events` should be added for auditability.
-- Razorpay webhook verification is not complete.
-- Cloudinary upload UI is not complete.
+- Razorpay customer and subscription flows need end-to-end testing with Razorpay test keys.
+- Refunds, payment retries after failed food-order payments, and invoice views are not implemented.
 - Delivery dispatch is manual and basic.
-- There are no automated tests yet.
+- Automated tests cover core utility/payment validation paths, but not full API integration flows yet.
 
 Current operational risks:
 - Service role key must stay backend-only.
-- Rerunning the latest Supabase migration is required after schema policy changes.
+- Supabase migrations must be applied in numeric order, especially payment migrations `0007`, `0008`, and `0009`.
 - Realtime depends on Supabase publication settings being applied.
 - Friend/teammate machines need their own `frontend/.env` and `backend/.env` files.
+- Razorpay live keys are blocked unless `RAZORPAY_ALLOW_LIVE_MODE=true`; use test keys first.
 
 ## Suggested Future Scope
 
 Priority 1:
-- Add customer address CRUD and default address selection.
-- Connect customer menu browsing to real `menu_items`.
-- Add restaurant detail page and real cart creation from selected restaurant.
-- Add profile editing for all roles.
+- End-to-end test Razorpay owner subscription and customer order payment in test mode.
+- Apply all pending Supabase migrations in staging/production.
+- Add deployment environment checklists for Vercel/Railway.
 
 Priority 2:
 - Add `order_items` table and migrate away from JSONB-only item storage.
@@ -575,8 +579,7 @@ Priority 2:
 - Add notification/toast system for realtime events.
 
 Priority 3:
-- Complete Razorpay webhook verification and subscription activation.
-- Complete Cloudinary image upload flows.
+- Add refunds and customer payment retry/recovery flows.
 - Add restaurant availability controls and operating hours.
 - Add delivery partner availability and auto-assignment.
 
@@ -588,18 +591,16 @@ Priority 4:
 
 ## Recommended Next Feature
 
-The strongest next feature is customer address management plus real restaurant-specific menu browsing.
+The strongest next feature is Phase 4 production readiness.
 
 Reason:
-- It completes the customer ordering path.
-- It removes dependency on sample menu items.
-- It makes order placement more realistic.
-- It prepares the app for proper delivery flow and order history.
+- Core customer ordering, owner subscriptions, profile/address management, image upload, reviews, and analytics are now implemented.
+- Payment flows exist but need staging-grade environment setup and end-to-end Razorpay test-mode validation.
+- Deployment, monitoring, rate limiting, and integration testing are now the highest-value work.
 
 Suggested implementation:
-- Add frontend address page or profile address section.
-- Add backend address endpoints.
-- Add customer address selection on checkout.
-- Add restaurant detail/menu route.
-- Load menu items from `menu_items` by selected restaurant ID.
-- Store selected address ID in `orders.delivery_address_id`.
+- Apply all Supabase migrations in a clean staging database.
+- Configure Razorpay test keys, test plan IDs, and webhook tunnel URL.
+- Run owner subscription and customer food-order payment tests end to end.
+- Add rate limiting, request validation coverage, and deployment docs.
+- Deploy frontend to Vercel and backend to Railway with environment checks.

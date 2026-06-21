@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listAddresses } from "../../services/addressService";
-import { placeOrder } from "../../services/orderService";
+import { createOrderPaymentCheckout, verifyOrderPayment } from "../../services/orderService";
 import { useCartStore } from "../../store/cartStore";
 
 const MINIMUM_ORDER_PAISE = 10000;
@@ -14,6 +14,18 @@ function buildAddressString(addr) {
   return [addr.line_1, addr.line_2, addr.locality, addr.city, addr.pincode]
     .filter(Boolean)
     .join(", ");
+}
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 }
 
 export default function CartSidebar({ activeRestaurant }) {
@@ -60,7 +72,10 @@ export default function CartSidebar({ activeRestaurant }) {
     }
     const saved = savedAddresses.find((a) => a.id === selectedAddressId);
     if (!saved) return null;
-    return { full_address: buildAddressString(saved) };
+    return {
+      id: saved.id,
+      full_address: buildAddressString(saved)
+    };
   }, [selectedAddressId, manualAddress, savedAddresses]);
 
   const canPlaceOrder =
@@ -83,7 +98,7 @@ export default function CartSidebar({ activeRestaurant }) {
 
     setIsPlacingOrder(true);
     try {
-      const order = await placeOrder({
+      const orderPayload = {
         restaurant_id: restaurantId,
         items: items.map((item) => ({
           id: item.id,
@@ -96,12 +111,39 @@ export default function CartSidebar({ activeRestaurant }) {
         delivery_fee: deliveryFeePaise,
         platform_fee: platformFeePaise,
         total: totalPaise,
+        delivery_address_id: resolvedDeliveryAddress.id || null,
         delivery_address: { full_address: resolvedDeliveryAddress.full_address, lat: null, lng: null }
+      };
+
+      const checkout = await createOrderPaymentCheckout(orderPayload);
+      const isLoaded = await loadRazorpayCheckout();
+      if (!isLoaded || !window.Razorpay) throw new Error("Unable to load Razorpay Checkout.");
+
+      const razorpay = new window.Razorpay({
+        key: checkout.key_id,
+        amount: checkout.amount_paise,
+        currency: checkout.currency || "INR",
+        order_id: checkout.razorpay_order_id,
+        name: checkout.checkout?.name || "QuickDyne",
+        description: checkout.checkout?.description || "Food order payment",
+        prefill: checkout.checkout?.prefill || {},
+        handler: async (response) => {
+          try {
+            const order = await verifyOrderPayment(response);
+            clearCart();
+            setManualAddress("");
+            navigate(`/order/${order.id}/track`);
+          } catch (error) {
+            setInlineError(error.message || "Payment succeeded, but order verification failed.");
+          }
+        },
+        modal: {
+          ondismiss: () => setInlineError("Payment was cancelled before completion.")
+        },
+        theme: { color: "#16a34a" }
       });
 
-      clearCart();
-      setManualAddress("");
-      navigate(`/order/${order.id}/track`);
+      razorpay.open();
     } catch (error) {
       setInlineError(error.message || "Unable to place the order right now.");
     } finally {
@@ -310,7 +352,7 @@ export default function CartSidebar({ activeRestaurant }) {
                   Placing order...
                 </>
               ) : (
-                `Place order · ${formatPaise(totalPaise)}`
+                `Pay online · ${formatPaise(totalPaise)}`
               )}
             </button>
           )}

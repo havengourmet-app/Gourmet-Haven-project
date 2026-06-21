@@ -1,5 +1,10 @@
 import { apiRequest } from "./apiClient";
 
+export async function listSubscriptionPlans() {
+  const response = await apiRequest("/subscriptions/plans");
+  return response?.data || [];
+}
+
 export async function getSubscriptionStatus() {
   const response = await apiRequest("/subscriptions/me");
   return response?.data || response;

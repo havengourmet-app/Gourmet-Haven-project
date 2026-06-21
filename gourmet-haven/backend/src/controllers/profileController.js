@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../config/supabaseClient.js";
+import { optionalText } from "../utils/validation.js";
 
 export async function getProfile(req, res) {
   if (!supabaseAdmin) {
@@ -31,13 +32,13 @@ export async function updateProfile(req, res) {
   const patch = {};
 
   if (typeof req.body.full_name !== "undefined") {
-    patch.full_name = req.body.full_name?.trim() || null;
+    patch.full_name = optionalText(req.body.full_name, "full_name", { maxLength: 120 }) || null;
   }
   if (typeof req.body.phone !== "undefined") {
-    patch.phone = req.body.phone?.trim() || null;
+    patch.phone = optionalText(req.body.phone, "phone", { maxLength: 20 }) || null;
   }
   if (typeof req.body.avatar_url !== "undefined") {
-    patch.avatar_url = req.body.avatar_url || null;
+    patch.avatar_url = optionalText(req.body.avatar_url, "avatar_url", { maxLength: 500 }) || null;
   }
 
   if (Object.keys(patch).length === 0) {

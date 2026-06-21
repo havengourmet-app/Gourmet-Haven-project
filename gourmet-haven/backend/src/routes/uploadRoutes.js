@@ -2,7 +2,6 @@ import { Router } from "express";
 import multer from "multer";
 import { uploadImage } from "../controllers/uploadController.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-import { requireRole } from "../middleware/requireRole.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const router = Router();
@@ -34,6 +33,6 @@ function handleImageUpload(req, res, next) {
   });
 }
 
-router.post("/image", requireAuth, requireRole("owner"), handleImageUpload, asyncHandler(uploadImage));
+router.post("/image", requireAuth, handleImageUpload, asyncHandler(uploadImage));
 
 export default router;

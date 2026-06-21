@@ -6,7 +6,7 @@ import RatingModal from "../components/customer/RatingModal";
 import { useAuth } from "../hooks/useAuth";
 import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
 import { formatPaise } from "../lib/orderPresentation";
-import { fetchOrder } from "../services/orderService";
+import { fetchOrder, updateOrderStatus } from "../services/orderService";
 import { fetchOrderReview } from "../services/reviewService";
 
 function formatAddress(order) {
@@ -29,6 +29,8 @@ export default function OrderTrackingPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   async function checkAndMaybeShowReview(currentOrder) {
     if (!isCustomer) return;
@@ -94,6 +96,21 @@ export default function OrderTrackingPage() {
     }
   });
 
+  async function handleCancelOrder() {
+    if (!order?.id || order.status !== "pending") return;
+    setActionError("");
+    setIsCancelling(true);
+
+    try {
+      const updated = await updateOrderStatus(order.id, { status: "cancelled" });
+      setOrder((current) => (current ? { ...current, status: updated.status || "cancelled" } : current));
+    } catch (err) {
+      setActionError(err.message || "Unable to cancel this order.");
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
   return (
     <Shell title="Track your order" subtitle="Follow the live journey from confirmation to delivery.">
       {loading ? (
@@ -123,6 +140,25 @@ export default function OrderTrackingPage() {
                 </button>
               )}
             </div>
+
+            {isCustomer && order.status === "pending" && (
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={handleCancelOrder}
+                  disabled={isCancelling}
+                  className="btn-danger"
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel order"}
+                </button>
+              </div>
+            )}
+
+            {actionError && (
+              <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
+                {actionError}
+              </div>
+            )}
 
             <div className="mt-6">
               <OrderStatusStepper currentStatus={order.status} />

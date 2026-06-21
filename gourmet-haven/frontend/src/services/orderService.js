@@ -50,3 +50,21 @@ export async function updateOrderStatus(orderId, payload) {
   });
   return response?.data ?? response;
 }
+
+export async function createOrderPaymentCheckout(orderData) {
+  const response = await apiRequest("/orders/payment/checkout", {
+    method: "POST",
+    body: JSON.stringify(orderData)
+  });
+
+  return response?.data || response;
+}
+
+export async function verifyOrderPayment(payload) {
+  const response = await apiRequest("/orders/payment/verify", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+  return response?.order || response;
+}

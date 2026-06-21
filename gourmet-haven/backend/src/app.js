@@ -17,7 +17,7 @@ import analyticsRoutes from "./routes/analyticsRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { hasCloudinaryConfig } from "./config/cloudinary.js";
-import { hasRazorpayConfig } from "./config/razorpay.js";
+import { hasRazorpayConfig, hasRazorpayWebhookConfig, isRazorpayLiveMode, isRazorpayModeAllowed, isRazorpayTestMode } from "./config/razorpay.js";
 import { hasSupabaseAdminConfig, hasSupabaseAuthConfig } from "./config/supabaseClient.js";
 
 const app = express();
@@ -32,7 +32,13 @@ app.use(
 );
 app.use(helmet());
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    }
+  })
+);
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -44,6 +50,10 @@ app.get("/api/health", (req, res) => {
         supabaseAuth: hasSupabaseAuthConfig,
         supabaseAdmin: hasSupabaseAdminConfig,
         razorpay: hasRazorpayConfig,
+        razorpayWebhook: hasRazorpayWebhookConfig,
+        razorpayTestMode: isRazorpayTestMode,
+        razorpayLiveMode: isRazorpayLiveMode,
+        razorpayModeAllowed: isRazorpayModeAllowed,
         cloudinary: hasCloudinaryConfig
       }
     }

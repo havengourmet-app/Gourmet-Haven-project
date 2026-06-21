@@ -13,6 +13,17 @@ When a major feature or important architectural step lands, add a new entry at t
 
 ## Major milestones
 
+### 2026-06-21 - Payment pipeline and production hardening
+
+- Hardened customer order creation so the backend validates menu items, restaurant ownership, prices, totals, minimum order value, and delivery address before checkout
+- Added Razorpay customer food-order payments using server-created payment orders, Checkout, backend signature verification, and paid order creation from a trusted payment snapshot
+- Completed Razorpay owner subscription plans, checkout, signature verification, webhook signature verification, idempotent webhook handling, and subscription-to-restaurant visibility sync
+- Added subscription access rules so inactive restaurants remain manageable by owners but are hidden from customer discovery and blocked from customer ordering
+- Added safer profile RLS via a public profile view, Cloudinary uploads for authenticated profile/menu/restaurant media, payment failure storage, and backend unit tests
+
+Impact:
+The platform now has a real paid customer order path and a subscription-based owner monetization path, with core payment/security checks in place before production-readiness work.
+
 ### 2026-04-19 - Legacy static prototype archived after React migration
 
 - Moved the old root-level HTML, CSS, JavaScript, image, and video prototype files into `legacy-static-prototype/`

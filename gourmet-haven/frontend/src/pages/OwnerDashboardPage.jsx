@@ -9,7 +9,7 @@ import { useRealtimeOrders } from "../hooks/useRealtimeOrders";
 import { formatOrderDate, formatOrderStatus, formatPaise, getItemCount, getOwnerActions, shortOrderId } from "../lib/orderPresentation";
 import { listOwnerOrders, updateOrderStatus } from "../services/orderService";
 import { createMenuItem, createRestaurant, listMenuItems, listOwnerRestaurants, updateRestaurant, updateMenuItem } from "../services/restaurantService";
-import { createSubscriptionCheckout, getSubscriptionStatus } from "../services/subscriptionService";
+import { createSubscriptionCheckout, getSubscriptionStatus, listSubscriptionPlans, verifySubscription } from "../services/subscriptionService";
 
 const EMPTY_RESTAURANT_FORM = { name: "", city: "Hyderabad", locality: "", cuisineSummary: "", logo_url: null, cover_image_url: null };
 
@@ -20,7 +20,24 @@ function toRestaurantFormValues(r) {
 
 function normalizeSubscription(s) {
   if (!s) return { planName: "Growth - Hyderabad", status: "Inactive" };
-  return { planName: s.plan_name || "Growth - Hyderabad", status: s.status ? s.status.replaceAll("_", " ") : "inactive", amountPaise: s.amount_paise || 0, currentPeriodEnd: s.current_period_end || null, razorpaySubscriptionId: s.razorpay_subscription_id || null };
+  return { planName: s.plan_name || "Growth - Hyderabad", status: s.status ? s.status.replaceAll("_", " ") : "inactive", amountPaise: s.amount_paise || 0, currentPeriodEnd: s.current_period_end || null, razorpaySubscriptionId: s.razorpay_subscription_id || null, lastPaymentError: s.last_payment_error || null };
+}
+
+function formatPlanAmount(plan) {
+  if (!plan) return "Not set";
+  return `${formatPaise(plan.amount_paise)} / ${plan.billing_interval || "month"}`;
+}
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 }
 
 export default function OwnerDashboardPage() {
@@ -31,10 +48,12 @@ export default function OwnerDashboardPage() {
   const [menuItems, setMenuItems] = useState([]);
   const [menuReady, setMenuReady] = useState(false);
   const [subscription, setSubscription] = useState(null);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [restaurantForm, setRestaurantForm] = useState(EMPTY_RESTAURANT_FORM);
   const [isCreatingRestaurant, setIsCreatingRestaurant] = useState(false);
+  const [selectedPlanKey, setSelectedPlanKey] = useState("growth");
   const [subscriptionPlanId, setSubscriptionPlanId] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
   const [busyOrderId, setBusyOrderId] = useState(null);
@@ -57,18 +76,26 @@ export default function OwnerDashboardPage() {
   const isRestaurantImageUploading = isLogoUploading || isCoverUploading;
   const isEditingRestaurant = Boolean(selectedRestaurant?.id) && !isCreatingRestaurant;
   const subscriptionView = normalizeSubscription(subscription);
+  const selectedPlan = subscriptionPlans.find((plan) => plan.key === selectedPlanKey) || subscriptionPlans[0] || null;
 
   useEffect(() => {
     let isMounted = true;
     async function load() {
       try {
-        const [rests, ords, sub] = await Promise.all([listOwnerRestaurants(), listOwnerOrders(), getSubscriptionStatus()]);
+        const [rests, ords, sub, plans] = await Promise.all([
+          listOwnerRestaurants(),
+          listOwnerOrders(),
+          getSubscriptionStatus(),
+          listSubscriptionPlans()
+        ]);
         if (!isMounted) return;
         const nextRests = Array.isArray(rests) ? rests : [];
-        setRestaurants(nextRests); setOrders(Array.isArray(ords) ? ords : []); setSubscription(sub || null);
+        const nextPlans = Array.isArray(plans) ? plans : [];
+        setRestaurants(nextRests); setOrders(Array.isArray(ords) ? ords : []); setSubscription(sub || null); setSubscriptionPlans(nextPlans);
+        if (nextPlans.length > 0) setSelectedPlanKey((current) => nextPlans.some((plan) => plan.key === current) ? current : nextPlans[0].key);
         if (nextRests.length > 0) setSelectedRestaurantId((c) => c && nextRests.some((r) => r.id === c) ? c : nextRests[0].id);
         else setSelectedRestaurantId("");
-      } catch { if (isMounted) { setRestaurants([]); setOrders([]); setSubscription(null); setSelectedRestaurantId(""); } }
+      } catch { if (isMounted) { setRestaurants([]); setOrders([]); setSubscription(null); setSubscriptionPlans([]); setSelectedRestaurantId(""); } }
       finally { if (isMounted) { setOrdersReady(true); } }
     }
     load();
@@ -157,6 +184,46 @@ export default function OwnerDashboardPage() {
     finally { setIsSubscriptionSubmitting(false); }
   }
 
+  async function handleStartPlanCheckout() {
+    setSubscriptionNotice("");
+    if (!selectedPlan?.key) { setSubscriptionNotice("Choose a subscription plan first."); return; }
+    if (!selectedRestaurant?.id) { setSubscriptionNotice("Create or select a restaurant before subscribing."); return; }
+    setIsSubscriptionSubmitting(true);
+    try {
+      const checkout = await createSubscriptionCheckout({
+        planKey: selectedPlan.key,
+        restaurantId: selectedRestaurant.id
+      });
+      const isLoaded = await loadRazorpayCheckout();
+      if (!isLoaded || !window.Razorpay) throw new Error("Unable to load Razorpay Checkout.");
+
+      const razorpay = new window.Razorpay({
+        key: checkout.key_id,
+        subscription_id: checkout.subscription_id,
+        name: checkout.checkout?.name || "QuickDyne",
+        description: checkout.checkout?.description || `${selectedPlan.name} subscription`,
+        prefill: checkout.checkout?.prefill || {},
+        handler: async (response) => {
+          const verified = await verifySubscription(response);
+          setSubscription(verified || checkout.subscription || null);
+          setSubscriptionNotice("Subscription activated successfully.");
+          setRefreshToken((v) => v + 1);
+        },
+        modal: {
+          ondismiss: () => setSubscriptionNotice("Checkout was closed before payment completion.")
+        },
+        theme: { color: "#16a34a" }
+      });
+
+      razorpay.open();
+      setSubscriptionNotice("Razorpay checkout opened.");
+    } catch (err) {
+      setSubscriptionNotice(err.message);
+    } finally {
+      setIsSubscriptionSubmitting(false);
+    }
+  }
+
   return (
     <Shell
       title="Owner command center"
@@ -184,30 +251,70 @@ export default function OwnerDashboardPage() {
               <p className="label-xs">Subscription control</p>
               <h2 className="mt-1 text-2xl font-semibold" style={{ color: "var(--ink)" }}>Billing and access</h2>
               <p className="mt-2 max-w-xl text-sm" style={{ color: "var(--ink-secondary)" }}>
-                Refresh subscription state or start a Razorpay checkout when a plan ID is available.
+                Choose a plan and start Razorpay Checkout for the selected restaurant.
               </p>
             </div>
             <div className="rounded-xl px-5 py-4" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
               <p className="text-xs font-medium" style={{ color: "var(--ink-muted)" }}>Current plan</p>
               <p className="mt-1 text-xl font-semibold" style={{ color: "var(--ink)" }}>{subscriptionView.planName}</p>
-              <p className="text-sm capitalize" style={{ color: "var(--ink-secondary)" }}>{subscriptionView.status}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={`badge ${subscriptionView.status === "active" ? "badge-green" : subscriptionView.status === "cancelled" ? "badge-red" : "badge-stone"}`}>
+                  {subscriptionView.status}
+                </span>
+                <span className="text-xs" style={{ color: "var(--ink-muted)" }}>
+                  {subscriptionView.currentPeriodEnd ? `Renews ${formatOrderDate(subscriptionView.currentPeriodEnd)}` : "No renewal date"}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="rounded-xl p-4 text-sm space-y-1.5" style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--ink-secondary)" }}>
-              <p>Amount: {subscriptionView.amountPaise ? formatPaise(subscriptionView.amountPaise) : "Not set"}</p>
-              <p>Period end: {subscriptionView.currentPeriodEnd ? formatOrderDate(subscriptionView.currentPeriodEnd) : "N/A"}</p>
+              <p><strong style={{ color: "var(--ink)" }}>Billing amount:</strong> {subscriptionView.amountPaise ? formatPaise(subscriptionView.amountPaise) : "Not set"}</p>
+              <p><strong style={{ color: "var(--ink)" }}>Renewal date:</strong> {subscriptionView.currentPeriodEnd ? formatOrderDate(subscriptionView.currentPeriodEnd) : "N/A"}</p>
               <p className="break-all">Razorpay ID: {subscriptionView.razorpaySubscriptionId || "Not linked"}</p>
+              {subscriptionView.lastPaymentError && (
+                <div className="mt-3 rounded-xl px-3 py-2.5 text-xs" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
+                  Payment issue: {subscriptionView.lastPaymentError}
+                </div>
+              )}
             </div>
             <div className="space-y-3">
-              <div>
-                <label className="input-label">Razorpay plan ID</label>
-                <input type="text" value={subscriptionPlanId} onChange={(e) => setSubscriptionPlanId(e.target.value)} className="input" placeholder="plan_XXXXXXXX" />
+              <div className="space-y-2">
+                <label className="input-label">Subscription plan</label>
+                {subscriptionPlans.length === 0 ? (
+                  <div className="rounded-xl p-4 text-sm" style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--ink-muted)" }}>
+                    No plans available from the backend.
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {subscriptionPlans.map((plan) => (
+                      <button
+                        key={plan.key}
+                        type="button"
+                        onClick={() => setSelectedPlanKey(plan.key)}
+                        className={`rounded-xl p-4 text-left transition ${selectedPlanKey === plan.key ? "ring-2 ring-green-600" : ""}`}
+                        style={{ background: "var(--muted)", border: "1px solid var(--border)" }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold" style={{ color: "var(--ink)" }}>{plan.name}</p>
+                            <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>{formatPlanAmount(plan)}</p>
+                          </div>
+                          <span className={`badge ${plan.is_configured ? "badge-green" : "badge-red"}`}>
+                            {plan.is_configured ? "Ready" : "Missing ID"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={isSubscriptionSubmitting} onClick={handleRefreshSubscription} className="btn-secondary">Refresh status</button>
-                <button type="button" disabled={isSubscriptionSubmitting} onClick={handleStartCheckout} className="btn-primary">Start checkout</button>
+                <button type="button" disabled={isSubscriptionSubmitting || !selectedPlan?.is_configured} onClick={handleStartPlanCheckout} className="btn-primary">
+                  {subscription?.id ? "Change plan" : "Start checkout"}
+                </button>
               </div>
             </div>
           </div>

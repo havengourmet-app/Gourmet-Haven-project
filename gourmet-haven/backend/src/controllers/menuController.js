@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../config/supabaseClient.js";
 import { assertPaise } from "../utils/money.js";
+import { optionalBoolean, optionalText, requireText } from "../utils/validation.js";
 
 async function assertOwnerOwnsRestaurant(ownerId, restaurantId) {
   const { data, error } = await supabaseAdmin
@@ -72,12 +73,12 @@ export async function createMenuItem(req, res) {
   const payload = {
     id: randomUUID(),
     restaurant_id: req.body.restaurantId,
-    name: req.body.name,
-    description: req.body.description || "",
-    category: req.body.category || "General",
+    name: requireText(req.body.name, "name", { maxLength: 120 }),
+    description: optionalText(req.body.description, "description", { maxLength: 500 }),
+    category: optionalText(req.body.category, "category", { defaultValue: "General", maxLength: 80 }) || "General",
     price_paise: req.body.pricePaise,
-    is_veg: Boolean(req.body.isVeg),
-    is_available: true,
+    is_veg: optionalBoolean(req.body.isVeg, "isVeg", false),
+    is_available: optionalBoolean(req.body.isAvailable, "isAvailable", true),
     image_url: req.body.image_url ?? req.body.imageUrl ?? null
   };
 
@@ -120,12 +121,16 @@ export async function updateMenuItem(req, res) {
   await assertOwnerOwnsMenuItem(req.profile?.id || req.user.id, req.params.menuItemId);
 
   const patch = {
-    ...(typeof req.body.name !== "undefined" ? { name: req.body.name } : {}),
-    ...(typeof req.body.description !== "undefined" ? { description: req.body.description } : {}),
-    ...(typeof req.body.category !== "undefined" ? { category: req.body.category } : {}),
+    ...(typeof req.body.name !== "undefined" ? { name: requireText(req.body.name, "name", { maxLength: 120 }) } : {}),
+    ...(typeof req.body.description !== "undefined"
+      ? { description: optionalText(req.body.description, "description", { maxLength: 500 }) }
+      : {}),
+    ...(typeof req.body.category !== "undefined"
+      ? { category: optionalText(req.body.category, "category", { defaultValue: "General", maxLength: 80 }) || "General" }
+      : {}),
     ...(typeof req.body.pricePaise !== "undefined" ? { price_paise: req.body.pricePaise } : {}),
-    ...(typeof req.body.isVeg !== "undefined" ? { is_veg: req.body.isVeg } : {}),
-    ...(typeof req.body.isAvailable !== "undefined" ? { is_available: req.body.isAvailable } : {}),
+    ...(typeof req.body.isVeg !== "undefined" ? { is_veg: optionalBoolean(req.body.isVeg, "isVeg", false) } : {}),
+    ...(typeof req.body.isAvailable !== "undefined" ? { is_available: optionalBoolean(req.body.isAvailable, "isAvailable", true) } : {}),
     ...(typeof req.body.image_url !== "undefined" || typeof req.body.imageUrl !== "undefined"
       ? { image_url: req.body.image_url ?? req.body.imageUrl ?? null }
       : {})

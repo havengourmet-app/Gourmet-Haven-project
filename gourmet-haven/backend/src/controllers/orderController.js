@@ -1,6 +1,14 @@
 import { randomUUID } from "node:crypto";
+import {
+  hasRazorpayConfig,
+  isRazorpayModeAllowed,
+  razorpay,
+  razorpayKeyId,
+  verifyOrderPaymentSignature
+} from "../config/razorpay.js";
 import { supabaseAdmin } from "../config/supabaseClient.js";
 import { assertPaise } from "../utils/money.js";
+import { restaurantHasActiveSubscription } from "../utils/subscriptionAccess.js";
 
 const SAMPLE_ORDERS = [
   {
@@ -16,6 +24,10 @@ const SAMPLE_ORDERS = [
   }
 ];
 
+const DELIVERY_FEE_PAISE = 3000;
+const PLATFORM_FEE_PAISE = 0;
+const MINIMUM_ORDER_SUBTOTAL_PAISE = 10000;
+
 const ORDER_SELECT = `
   id,
   customer_id,
@@ -28,6 +40,10 @@ const ORDER_SELECT = `
   platform_fee_paise,
   total_paise,
   status,
+  payment_status,
+  payment_provider,
+  razorpay_order_id,
+  razorpay_payment_id,
   notes,
   city,
   created_at,
@@ -117,25 +133,31 @@ function isAllowedTransition(currentStatus, nextStatus) {
   return TRANSITIONS[currentStatus]?.has(nextStatus) || false;
 }
 
-function normalizeOrderItems(items) {
+export function normalizeOrderItems(items) {
   if (!Array.isArray(items)) {
     return [];
   }
 
-  return items
-    .map((item) => {
-      const quantity = Number(item.qty ?? item.quantity ?? 0);
+  const byItemId = new Map();
 
-      return {
-        id: item.id,
-        name: item.name,
-        price: Number(item.price ?? item.pricePaise ?? 0),
-        qty: quantity,
-        quantity,
-        image_url: item.image_url || item.imageUrl || null
-      };
-    })
-    .filter((item) => item.id && item.name && Number.isFinite(item.price) && item.price >= 0 && item.qty > 0);
+  for (const item of items) {
+    const id = item?.id;
+    const quantity = Number(item?.qty ?? item?.quantity ?? 0);
+
+    if (!id || !Number.isInteger(quantity) || quantity <= 0) {
+      const error = new Error("Each order item must include an id and a positive integer quantity.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    byItemId.set(id, (byItemId.get(id) || 0) + quantity);
+  }
+
+  return Array.from(byItemId.entries()).map(([id, quantity]) => ({
+    id,
+    qty: quantity,
+    quantity
+  }));
 }
 
 async function assertOwnerCanManageOrder(profileId, restaurantId) {
@@ -172,17 +194,215 @@ async function fetchOrderForUpdate(orderId) {
 async function fetchActiveRestaurantForOrder(restaurantId) {
   const { data, error } = await supabaseAdmin
     .from("restaurants")
-    .select("id, name, city, is_active")
+    .select("id, name, city, is_active, subscription_status")
     .eq("id", restaurantId)
     .single();
 
-  if (error || !data || !data.is_active) {
-    const restaurantError = new Error("Restaurant not found or is not currently available.");
+  if (error || !data || !data.is_active || !restaurantHasActiveSubscription(data)) {
+    const restaurantError = new Error("Restaurant is not currently accepting orders.");
     restaurantError.statusCode = 400;
     throw restaurantError;
   }
 
   return data;
+}
+
+function buildSavedAddressSnapshot(address) {
+  const fullAddress = [address.line_1, address.line_2, address.locality, address.city, address.pincode]
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    full_address: fullAddress,
+    label: address.label || null,
+    recipient_name: address.recipient_name || null,
+    phone: address.phone || null,
+    locality: address.locality || null,
+    lat: null,
+    lng: null
+  };
+}
+
+async function resolveDeliveryAddress(customerId, deliveryAddressId, deliveryAddress) {
+  if (deliveryAddressId) {
+    const { data, error } = await supabaseAdmin
+      .from("addresses")
+      .select("id, label, recipient_name, phone, line_1, line_2, locality, city, pincode")
+      .eq("id", deliveryAddressId)
+      .eq("profile_id", customerId)
+      .single();
+
+    if (error || !data) {
+      const addressError = new Error("Selected delivery address was not found.");
+      addressError.statusCode = 400;
+      throw addressError;
+    }
+
+    return {
+      deliveryAddressId: data.id,
+      snapshot: buildSavedAddressSnapshot(data)
+    };
+  }
+
+  if (!deliveryAddress?.full_address?.trim()) {
+    const addressError = new Error("A delivery address is required.");
+    addressError.statusCode = 400;
+    throw addressError;
+  }
+
+  return {
+    deliveryAddressId: null,
+    snapshot: {
+      full_address: deliveryAddress.full_address.trim(),
+      lat: typeof deliveryAddress.lat === "number" ? deliveryAddress.lat : null,
+      lng: typeof deliveryAddress.lng === "number" ? deliveryAddress.lng : null
+    }
+  };
+}
+
+async function buildValidatedOrderItems(restaurantId, requestedItems) {
+  const itemIds = requestedItems.map((item) => item.id);
+
+  const { data: menuItems, error } = await supabaseAdmin
+    .from("menu_items")
+    .select("id, restaurant_id, name, price_paise, image_url, is_available")
+    .in("id", itemIds);
+
+  if (error) throw error;
+
+  const menuById = new Map((menuItems || []).map((item) => [item.id, item]));
+
+  const orderItems = requestedItems.map((requested) => {
+    const menuItem = menuById.get(requested.id);
+
+    if (!menuItem || menuItem.restaurant_id !== restaurantId) {
+      const itemError = new Error("One or more cart items do not belong to this restaurant.");
+      itemError.statusCode = 400;
+      throw itemError;
+    }
+
+    if (!menuItem.is_available) {
+      const itemError = new Error(`${menuItem.name} is not currently available.`);
+      itemError.statusCode = 400;
+      throw itemError;
+    }
+
+    return {
+      id: menuItem.id,
+      name: menuItem.name,
+      price: Number(menuItem.price_paise || 0),
+      qty: requested.qty,
+      quantity: requested.quantity,
+      image_url: menuItem.image_url || null
+    };
+  });
+
+  const subtotalPaise = orderItems.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
+    0
+  );
+
+  return { orderItems, subtotalPaise };
+}
+
+export function assertClientAmountMatches(clientValue, serverValue, fieldName) {
+  if (typeof clientValue === "undefined" || clientValue === null) {
+    return;
+  }
+
+  assertPaise(clientValue, fieldName);
+
+  if (Number(clientValue) !== Number(serverValue)) {
+    const error = new Error(`${fieldName} does not match the current menu price.`);
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+async function buildTrustedOrderPayload(req) {
+  const restaurantId = req.body.restaurant_id || req.body.restaurantId;
+  const subtotalPaise = req.body.subtotal ?? req.body.subtotalPaise;
+  const deliveryFeePaise = req.body.delivery_fee ?? req.body.deliveryFeePaise;
+  const platformFeePaise = req.body.platform_fee ?? req.body.platformFeePaise ?? 0;
+  const totalPaise = req.body.total ?? req.body.totalPaise;
+  const deliveryAddress = req.body.delivery_address || req.body.deliveryAddress || null;
+  const requestedDeliveryAddressId = req.body.delivery_address_id || req.body.deliveryAddressId || null;
+  const normalizedItems = normalizeOrderItems(req.body.items);
+
+  if (!restaurantId) {
+    const error = new Error("restaurant_id is required to place an order.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (normalizedItems.length === 0) {
+    const error = new Error("Add at least one item before placing an order.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!requestedDeliveryAddressId && !deliveryAddress?.full_address?.trim()) {
+    const error = new Error("A delivery address is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const restaurant = await fetchActiveRestaurantForOrder(restaurantId);
+  const { orderItems, subtotalPaise: calculatedSubtotalPaise } = await buildValidatedOrderItems(
+    restaurantId,
+    normalizedItems
+  );
+  const calculatedDeliveryFeePaise = calculatedSubtotalPaise > 0 ? DELIVERY_FEE_PAISE : 0;
+  const calculatedPlatformFeePaise = calculatedSubtotalPaise > 0 ? PLATFORM_FEE_PAISE : 0;
+  const calculatedTotalPaise = calculatedSubtotalPaise + calculatedDeliveryFeePaise + calculatedPlatformFeePaise;
+  const { deliveryAddressId, snapshot: deliveryAddressSnapshot } = await resolveDeliveryAddress(
+    req.user.id,
+    requestedDeliveryAddressId,
+    deliveryAddress
+  );
+
+  assertClientAmountMatches(subtotalPaise, calculatedSubtotalPaise, "subtotal");
+  assertClientAmountMatches(deliveryFeePaise, calculatedDeliveryFeePaise, "delivery_fee");
+  assertClientAmountMatches(platformFeePaise, calculatedPlatformFeePaise, "platform_fee");
+  assertClientAmountMatches(totalPaise, calculatedTotalPaise, "total");
+
+  if (calculatedSubtotalPaise < MINIMUM_ORDER_SUBTOTAL_PAISE) {
+    const error = new Error("Minimum order value is Rs 100.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    restaurant,
+    deliveryAddressId,
+    deliveryAddressSnapshot,
+    orderItems,
+    subtotalPaise: calculatedSubtotalPaise,
+    deliveryFeePaise: calculatedDeliveryFeePaise,
+    platformFeePaise: calculatedPlatformFeePaise,
+    totalPaise: calculatedTotalPaise
+  };
+}
+
+function toOrderInsertPayload({ customerId, trustedOrder, payment = {} }) {
+  return {
+    id: randomUUID(),
+    customer_id: customerId,
+    restaurant_id: trustedOrder.restaurant.id,
+    delivery_address_id: trustedOrder.deliveryAddressId,
+    items: trustedOrder.orderItems,
+    subtotal_paise: trustedOrder.subtotalPaise,
+    delivery_fee_paise: trustedOrder.deliveryFeePaise,
+    platform_fee_paise: trustedOrder.platformFeePaise,
+    total_paise: trustedOrder.totalPaise,
+    status: "pending",
+    notes: JSON.stringify({ delivery_address: trustedOrder.deliveryAddressSnapshot }),
+    city: trustedOrder.restaurant.city || "Hyderabad",
+    payment_status: payment.paymentStatus || "unpaid",
+    payment_provider: payment.paymentProvider || null,
+    razorpay_order_id: payment.razorpayOrderId || null,
+    razorpay_payment_id: payment.razorpayPaymentId || null
+  };
 }
 
 export async function listCustomerOrders(req, res) {
@@ -334,60 +554,36 @@ export async function listDeliveryOrders(req, res) {
 }
 
 export async function createOrder(req, res) {
-  const restaurantId = req.body.restaurant_id || req.body.restaurantId;
-  const subtotalPaise = req.body.subtotal ?? req.body.subtotalPaise;
-  const deliveryFeePaise = req.body.delivery_fee ?? req.body.deliveryFeePaise;
-  const platformFeePaise = req.body.platform_fee ?? req.body.platformFeePaise ?? 0;
-  const totalPaise = req.body.total ?? req.body.totalPaise;
-  const deliveryAddress = req.body.delivery_address || req.body.deliveryAddress || null;
-  const normalizedItems = normalizeOrderItems(req.body.items);
-
-  if (!restaurantId) {
-    return res.status(400).json({
+  if (process.env.ALLOW_UNPAID_CUSTOMER_ORDERS !== "true") {
+    return res.status(403).json({
       success: false,
-      message: "restaurant_id is required to place an order."
+      message: "Online payment is required before placing an order.",
+      code: "PAYMENT_REQUIRED"
     });
   }
-
-  if (normalizedItems.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Add at least one item before placing an order."
-    });
-  }
-
-  if (!deliveryAddress?.full_address?.trim()) {
-    return res.status(400).json({
-      success: false,
-      message: "A delivery address is required."
-    });
-  }
-
-  assertPaise(subtotalPaise, "subtotal");
-  assertPaise(deliveryFeePaise, "delivery_fee");
-  assertPaise(platformFeePaise, "platform_fee");
-  assertPaise(totalPaise, "total");
-
-  if (Number(totalPaise) < 10000) {
-    return res.status(400).json({
-      success: false,
-      message: "Minimum order value is Rs 100."
-    });
-  }
-
-  const deliveryAddressSnapshot = {
-    full_address: deliveryAddress.full_address.trim(),
-    lat: typeof deliveryAddress.lat === "number" ? deliveryAddress.lat : null,
-    lng: typeof deliveryAddress.lng === "number" ? deliveryAddress.lng : null
-  };
 
   if (!supabaseAdmin) {
+    const subtotalPaise = req.body.subtotal ?? req.body.subtotalPaise;
+    const deliveryFeePaise = req.body.delivery_fee ?? req.body.deliveryFeePaise;
+    const platformFeePaise = req.body.platform_fee ?? req.body.platformFeePaise ?? 0;
+    const totalPaise = req.body.total ?? req.body.totalPaise;
+    assertPaise(subtotalPaise, "subtotal");
+    assertPaise(deliveryFeePaise, "delivery_fee");
+    assertPaise(platformFeePaise, "platform_fee");
+    assertPaise(totalPaise, "total");
+
+    const deliveryAddressSnapshot = {
+      full_address: req.body.delivery_address?.full_address?.trim() || "Delivery address",
+      lat: typeof req.body.delivery_address?.lat === "number" ? req.body.delivery_address.lat : null,
+      lng: typeof req.body.delivery_address?.lng === "number" ? req.body.delivery_address.lng : null
+    };
+
     const payload = {
       id: randomUUID(),
       customer_id: req.user.id,
-      restaurant_id: restaurantId,
-      delivery_address_id: null,
-      items: normalizedItems,
+      restaurant_id: req.body.restaurant_id || req.body.restaurantId,
+      delivery_address_id: req.body.delivery_address_id || req.body.deliveryAddressId || null,
+      items: normalizeOrderItems(req.body.items),
       subtotal_paise: subtotalPaise,
       delivery_fee_paise: deliveryFeePaise,
       platform_fee_paise: platformFeePaise,
@@ -408,21 +604,8 @@ export async function createOrder(req, res) {
     });
   }
 
-  const restaurant = await fetchActiveRestaurantForOrder(restaurantId);
-  const payload = {
-    id: randomUUID(),
-    customer_id: req.user.id,
-    restaurant_id: restaurantId,
-    delivery_address_id: null,
-    items: normalizedItems,
-    subtotal_paise: subtotalPaise,
-    delivery_fee_paise: deliveryFeePaise,
-    platform_fee_paise: platformFeePaise,
-    total_paise: totalPaise,
-    status: "pending",
-    notes: JSON.stringify({ delivery_address: deliveryAddressSnapshot }),
-    city: restaurant.city || "Hyderabad"
-  };
+  const trustedOrder = await buildTrustedOrderPayload(req);
+  const payload = toOrderInsertPayload({ customerId: req.user.id, trustedOrder });
 
   const { data, error } = await supabaseAdmin
     .from("orders")
@@ -436,6 +619,184 @@ export async function createOrder(req, res) {
 
   res.status(201).json({
     order: data
+  });
+}
+
+export async function createOrderPaymentCheckout(req, res) {
+  if (!hasRazorpayConfig || !razorpay) {
+    return res.status(503).json({
+      success: false,
+      message: "Razorpay is not configured for customer payments.",
+      code: "RAZORPAY_NOT_CONFIGURED"
+    });
+  }
+
+  if (!isRazorpayModeAllowed) {
+    return res.status(403).json({
+      success: false,
+      message: "Live Razorpay keys are blocked in this environment. Use test keys first.",
+      code: "RAZORPAY_LIVE_MODE_BLOCKED"
+    });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(503).json({
+      success: false,
+      message: "Supabase admin is required to create paid orders.",
+      code: "SUPABASE_NOT_CONFIGURED"
+    });
+  }
+
+  const trustedOrder = await buildTrustedOrderPayload(req);
+  const receipt = `qd_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
+  const razorpayOrder = await razorpay.orders.create({
+    amount: trustedOrder.totalPaise,
+    currency: "INR",
+    receipt,
+    notes: {
+      customer_id: req.user.id,
+      restaurant_id: trustedOrder.restaurant.id
+    }
+  });
+
+  const attemptPayload = {
+    customer_id: req.user.id,
+    restaurant_id: trustedOrder.restaurant.id,
+    delivery_address_id: trustedOrder.deliveryAddressId,
+    items: trustedOrder.orderItems,
+    subtotal_paise: trustedOrder.subtotalPaise,
+    delivery_fee_paise: trustedOrder.deliveryFeePaise,
+    platform_fee_paise: trustedOrder.platformFeePaise,
+    total_paise: trustedOrder.totalPaise,
+    currency: "INR",
+    status: "created",
+    razorpay_order_id: razorpayOrder.id,
+    notes: JSON.stringify({ delivery_address: trustedOrder.deliveryAddressSnapshot }),
+    city: trustedOrder.restaurant.city || "Hyderabad"
+  };
+
+  const { data: attempt, error } = await supabaseAdmin
+    .from("order_payment_attempts")
+    .insert(attemptPayload)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  res.status(201).json({
+    success: true,
+    data: {
+      key_id: razorpayKeyId,
+      razorpay_order_id: razorpayOrder.id,
+      amount_paise: trustedOrder.totalPaise,
+      currency: "INR",
+      attempt_id: attempt.id,
+      checkout: {
+        name: "QuickDyne",
+        description: `Food order from ${trustedOrder.restaurant.name}`,
+        prefill: {
+          name: req.profile?.full_name || "",
+          email: req.user?.email || ""
+        }
+      }
+    }
+  });
+}
+
+export async function verifyOrderPayment(req, res) {
+  const razorpayOrderId = req.body.razorpay_order_id;
+  const razorpayPaymentId = req.body.razorpay_payment_id;
+  const signature = req.body.razorpay_signature;
+
+  if (!verifyOrderPaymentSignature({ orderId: razorpayOrderId, paymentId: razorpayPaymentId, signature })) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Razorpay payment signature.",
+      code: "INVALID_RAZORPAY_SIGNATURE"
+    });
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(503).json({
+      success: false,
+      message: "Supabase admin is required to verify paid orders.",
+      code: "SUPABASE_NOT_CONFIGURED"
+    });
+  }
+
+  const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
+    .from("orders")
+    .select("id, status, total_paise, created_at")
+    .eq("razorpay_order_id", razorpayOrderId)
+    .maybeSingle();
+
+  if (existingOrderError) throw existingOrderError;
+  if (existingOrder) {
+    return res.json({ success: true, order: existingOrder });
+  }
+
+  const { data: attempt, error: attemptError } = await supabaseAdmin
+    .from("order_payment_attempts")
+    .select("*")
+    .eq("razorpay_order_id", razorpayOrderId)
+    .eq("customer_id", req.user.id)
+    .maybeSingle();
+
+  if (attemptError) throw attemptError;
+  if (!attempt) {
+    return res.status(404).json({
+      success: false,
+      message: "Payment attempt not found.",
+      code: "PAYMENT_ATTEMPT_NOT_FOUND"
+    });
+  }
+
+  if (attempt.status !== "created" && attempt.status !== "paid") {
+    return res.status(400).json({
+      success: false,
+      message: "This payment attempt can no longer create an order.",
+      code: "PAYMENT_ATTEMPT_CLOSED"
+    });
+  }
+
+  const trustedOrder = {
+    restaurant: { id: attempt.restaurant_id, city: attempt.city || "Hyderabad" },
+    deliveryAddressId: attempt.delivery_address_id,
+    deliveryAddressSnapshot: parseDeliveryAddressSnapshot(attempt.notes),
+    orderItems: attempt.items,
+    subtotalPaise: attempt.subtotal_paise,
+    deliveryFeePaise: attempt.delivery_fee_paise,
+    platformFeePaise: attempt.platform_fee_paise,
+    totalPaise: attempt.total_paise
+  };
+
+  const orderPayload = toOrderInsertPayload({
+    customerId: req.user.id,
+    trustedOrder,
+    payment: {
+      paymentStatus: "paid",
+      paymentProvider: "razorpay",
+      razorpayOrderId,
+      razorpayPaymentId
+    }
+  });
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .from("orders")
+    .insert(orderPayload)
+    .select("id, status, total_paise, created_at")
+    .single();
+
+  if (orderError) throw orderError;
+
+  await supabaseAdmin
+    .from("order_payment_attempts")
+    .update({ status: "paid", razorpay_payment_id: razorpayPaymentId })
+    .eq("id", attempt.id);
+
+  res.status(201).json({
+    success: true,
+    order
   });
 }
 
@@ -490,6 +851,45 @@ export async function updateOrderStatus(req, res) {
     }
 
     patch.status = nextStatus;
+  }
+
+  if (role === "customer") {
+    if (requestedDeliveryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Customers cannot assign delivery partners."
+      });
+    }
+
+    if (existingOrder.restaurant_id && existingOrder.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Customers can only cancel orders while they are pending."
+      });
+    }
+
+    if (nextStatus !== "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Customers can only cancel pending orders."
+      });
+    }
+
+    const { data: customerOrder, error: customerOrderError } = await supabaseAdmin
+      .from("orders")
+      .select("id")
+      .eq("id", req.params.orderId)
+      .eq("customer_id", req.profile.id)
+      .single();
+
+    if (customerOrderError || !customerOrder) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have access to this order."
+      });
+    }
+
+    patch.status = "cancelled";
   }
 
   if (role === "delivery") {

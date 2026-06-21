@@ -20,6 +20,7 @@ export default function RestaurantCard({ restaurant, onBrowse }) {
   const bannerImage = restaurant.cover_image_url || null;
   const logoImage = restaurant.logo_url || null;
   const rating = getRatingLabel(restaurant.avg_rating);
+  const deliveryMinutes = Number(restaurant.estimated_delivery_minutes || 35);
   const initials = restaurant.name?.slice(0, 2)?.toUpperCase() || "R";
   const gradient = getCoverGradient(restaurant.name);
 
@@ -95,7 +96,7 @@ export default function RestaurantCard({ restaurant, onBrowse }) {
               {restaurant.name}
             </h3>
             <p className="mt-0.5 text-xs" style={{ color: "var(--ink-muted)" }}>
-              {restaurant.locality || "Hyderabad"}
+              {restaurant.locality || "Hyderabad"} · {deliveryMinutes} min
             </p>
             {restaurant.cuisine_summary && (
               <p className="mt-1 truncate text-xs" style={{ color: "var(--ink-secondary)" }}>
@@ -107,16 +108,12 @@ export default function RestaurantCard({ restaurant, onBrowse }) {
 
         {/* CTA */}
         <div className="mt-4 flex items-center justify-between">
-          {restaurant.description ? (
-            <p
-              className="line-clamp-1 text-xs leading-5 flex-1 mr-3"
-              style={{ color: "var(--ink-muted)" }}
-            >
-              {restaurant.description}
-            </p>
-          ) : (
-            <span />
-          )}
+          <p
+            className="line-clamp-1 text-xs leading-5 flex-1 mr-3"
+            style={{ color: "var(--ink-muted)" }}
+          >
+            {restaurant.description || `${deliveryMinutes} min delivery`}
+          </p>
           <span
             className="flex-shrink-0 text-xs font-semibold"
             style={{ color: "var(--brand)" }}
