@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import CustomerDashboardPage from "./pages/CustomerDashboardPage";
 import DeliveryDashboardPage from "./pages/DeliveryDashboardPage";
+import KycOnboardingPage from "./pages/KycOnboardingPage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -45,10 +47,20 @@ export default function App() {
         }
       />
 
+      {/* KYC onboarding — owner/delivery only, must be signed in but not yet approved */}
+      <Route
+        path="/onboarding/kyc"
+        element={
+          <ProtectedRoute allowedRoles={["owner", "delivery"]}>
+            <KycOnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/owner"
         element={
-          <ProtectedRoute allowedRoles={["owner"]}>
+          <ProtectedRoute allowedRoles={["owner"]} requireApproved>
             <OwnerDashboardPage />
           </ProtectedRoute>
         }
@@ -56,8 +68,18 @@ export default function App() {
       <Route
         path="/delivery"
         element={
-          <ProtectedRoute allowedRoles={["delivery"]}>
+          <ProtectedRoute allowedRoles={["delivery"]} requireApproved>
             <DeliveryDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin-only account approval queue */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminDashboardPage />
           </ProtectedRoute>
         }
       />

@@ -2,6 +2,19 @@ import { cloudinary, hasCloudinaryConfig } from "../config/cloudinary.js";
 
 const DEFAULT_UPLOAD_FOLDER = "quickdyne/uploads";
 
+// Only these subfolders are allowed via the `folder` field — this is an
+// allowlist, not free text, so a client can't write into arbitrary Cloudinary
+// paths just by sending a different folder name.
+const ALLOWED_SUBFOLDERS = new Set(["uploads", "kyc"]);
+
+function resolveUploadFolder(requestedFolder) {
+  if (!requestedFolder || !ALLOWED_SUBFOLDERS.has(requestedFolder)) {
+    return DEFAULT_UPLOAD_FOLDER;
+  }
+
+  return `quickdyne/${requestedFolder}`;
+}
+
 function uploadBufferToCloudinary(buffer, options = {}) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
@@ -40,7 +53,7 @@ export async function uploadImage(req, res) {
 
   try {
     const result = await uploadBufferToCloudinary(req.file.buffer, {
-      folder: DEFAULT_UPLOAD_FOLDER,
+      folder: resolveUploadFolder(req.body?.folder),
       resource_type: "image"
     });
 

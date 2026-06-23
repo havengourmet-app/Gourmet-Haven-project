@@ -1,12 +1,13 @@
 import { apiRequest } from "./apiClient";
 
-export async function uploadImage(file) {
+export async function uploadImage(file, folder = "uploads") {
   if (!(file instanceof File)) {
     throw new Error("Please choose a valid image file before uploading.");
   }
 
   const formData = new FormData();
   formData.append("image", file);
+  formData.append("folder", folder);
 
   try {
     const response = await apiRequest("/uploads/image", {

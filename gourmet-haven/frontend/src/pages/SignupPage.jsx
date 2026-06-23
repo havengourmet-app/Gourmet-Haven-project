@@ -26,9 +26,16 @@ export default function SignupPage() {
     setNotice("");
     try {
       await signUp(form);
-      setNotice("Account created! Check your email for a confirmation link, then sign in.");
-      setTimeout(() => navigate("/login"), 2000);
-    } catch { return; }
+      const needsApproval = form.role === "owner" || form.role === "delivery";
+      setNotice(
+        needsApproval
+          ? "Account created! Check your email to confirm it. After confirming, an admin will review your application before you get dashboard access."
+          : "Account created! Check your email for a confirmation link, then sign in."
+      );
+      setTimeout(() => navigate("/login"), 2500);
+    } catch {
+      return;
+    }
   }
 
   function focusStyle(e) {

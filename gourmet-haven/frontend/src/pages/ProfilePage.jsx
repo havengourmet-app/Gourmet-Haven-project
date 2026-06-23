@@ -371,6 +371,23 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
         <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>Account role</p>
         <div className="mt-3 flex items-center gap-3">
           <RoleBadge role={profile?.role || "customer"} />
+          {(profile?.role === "owner" || profile?.role === "delivery") && profile?.approval_status && (
+            <span
+              className={`badge ${
+                profile.approval_status === "approved"
+                  ? "badge-green"
+                  : profile.approval_status === "rejected"
+                  ? "badge-red"
+                  : "badge-amber"
+              }`}
+            >
+              {profile.approval_status === "approved"
+                ? "Approved"
+                : profile.approval_status === "rejected"
+                ? "Rejected"
+                : "Pending approval"}
+            </span>
+          )}
           <p className="text-sm" style={{ color: "var(--ink-secondary)" }}>
             {profile?.role === "owner"
               ? "You manage restaurants on this platform."

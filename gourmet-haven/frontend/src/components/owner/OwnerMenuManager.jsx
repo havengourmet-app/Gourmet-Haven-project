@@ -31,7 +31,7 @@ function revokeObjectUrl(url) {
   if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
 }
 
-export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange }) {
+export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange, folder = "uploads" }) {
   const inputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(existingUrl || null);
   const [temporaryUrl, setTemporaryUrl] = useState(null);
@@ -54,7 +54,7 @@ export function ImageUploader({ onUpload, existingUrl, label, onUploadingChange 
     setPreviewUrl(nextTmp);
     setUploadingState(true);
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(file, folder);
       revokeObjectUrl(nextTmp);
       setTemporaryUrl(null);
       setPreviewUrl(url);

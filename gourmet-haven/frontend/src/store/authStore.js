@@ -12,11 +12,15 @@ function fallbackProfile(user) {
     return null;
   }
 
+  const role = user.user_metadata?.role || "customer";
+
   return {
     id: user.id,
     full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "QuickDyne User",
-    role: user.user_metadata?.role || "customer",
-    phone: user.phone || null
+    role,
+    phone: user.phone || null,
+    // Fail closed: if the real profile fetch fails, don't accidentally grant access.
+    approval_status: role === "customer" ? "approved" : "pending"
   };
 }
 
@@ -119,6 +123,10 @@ export const useAuthStore = create((set, get) => ({
 
     if (role === "delivery") {
       return "/delivery";
+    }
+
+    if (role === "admin") {
+      return "/admin";
     }
 
     return "/customer";

@@ -15,6 +15,10 @@ const NAV_BY_ROLE = {
   delivery: [
     { label: "Dispatch", to: "/delivery" },
     { label: "Profile", to: "/profile" }
+  ],
+  admin: [
+    { label: "Approvals", to: "/admin" },
+    { label: "Profile", to: "/profile" }
   ]
 };
 
