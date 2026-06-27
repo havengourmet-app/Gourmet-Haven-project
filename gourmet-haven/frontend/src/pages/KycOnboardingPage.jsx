@@ -115,9 +115,9 @@ export default function KycOnboardingPage() {
   }
 
   return (
-    <Shell
-      title="Verify your details"
-      subtitle="We need a few details before your account can be reviewed. This information is only visible to admins for verification purposes."
+      <Shell
+    title="Verify your details"
+    subtitle="We need a few details before your account can be reviewed. Aadhaar and PAN are validated and reduced to their last 4 digits before being saved — the full numbers are never stored, only verified against your uploaded documents."
     >
       {existingStatus === "rejected" && (
         <div className="card-surface p-5 text-sm" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
@@ -172,7 +172,7 @@ export default function KycOnboardingPage() {
 
         <div>
           <label className="input-label">
-            Gig Act UID <span style={{ color: "var(--ink-muted)" }}>(optional, if registered)</span>
+            Gig Act UID <span style={{ color: "var(--ink-muted)" }}>(must register)</span>
           </label>
           <input type="text" placeholder="Gig worker welfare UID" {...field("gig_act_uid")} className="input" />
         </div>

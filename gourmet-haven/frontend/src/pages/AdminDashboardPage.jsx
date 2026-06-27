@@ -5,9 +5,10 @@ import { formatOrderDate } from "../lib/orderPresentation";
 import { approveAccount, fetchAllAccounts, fetchPendingAccounts, rejectAccount } from "../services/adminService";
 import { revealKycField } from "../services/kycService";
 
+// Aadhaar/PAN are intentionally absent here — only their last 4 characters
+// are ever stored (see migration 0012), so there's nothing to reveal. They're
+// shown directly from kyc.aadhaar_last4 / kyc.pan_last4 below instead.
 const REVEALABLE_FIELDS = [
-  { key: "aadhaar_number", label: "Aadhaar" },
-  { key: "pan_number", label: "PAN" },
   { key: "driving_license_number", label: "Driving license" },
   { key: "restaurant_license_number", label: "FSSAI license" },
   { key: "gig_act_uid", label: "Gig Act UID" }
@@ -53,6 +54,19 @@ function KycDetailPanel({ account }) {
         <p><strong style={{ color: "var(--ink)" }}>DOB:</strong> {kyc.date_of_birth}</p>
         <p><strong style={{ color: "var(--ink)" }}>Mobile:</strong> {kyc.mobile_number}</p>
         <p className="sm:col-span-2"><strong style={{ color: "var(--ink)" }}>Address:</strong> {kyc.home_address}</p>
+      </div>
+
+      {/* Aadhaar/PAN: last 4 only, always — full number was never stored.
+          Verify the full number against the uploaded document below. */}
+      <div className="border-t pt-3 grid gap-2 sm:grid-cols-2" style={{ borderColor: "var(--border)" }}>
+        <p>
+          <strong style={{ color: "var(--ink)" }}>Aadhaar:</strong>{" "}
+          <span className="font-mono">{kyc.aadhaar_last4}</span>
+        </p>
+        <p>
+          <strong style={{ color: "var(--ink)" }}>PAN:</strong>{" "}
+          <span className="font-mono">{kyc.pan_last4}</span>
+        </p>
       </div>
 
       <div className="border-t pt-3 space-y-2" style={{ borderColor: "var(--border)" }}>

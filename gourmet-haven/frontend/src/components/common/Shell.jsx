@@ -3,7 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useUiStore } from "../../store/uiStore";
 import RoleBadge from "./RoleBadge";
 
-const NAV_BY_ROLE = {
+const BASE_NAV_BY_ROLE = {
   customer: [
     { label: "Discover", to: "/customer" },
     { label: "Profile", to: "/profile" }
@@ -22,12 +22,27 @@ const NAV_BY_ROLE = {
   ]
 };
 
+const APPROVAL_GATED_ROLES = new Set(["owner", "delivery"]);
+
+function buildNavItems(role, approvalStatus) {
+  const base = BASE_NAV_BY_ROLE[role] || BASE_NAV_BY_ROLE.customer;
+
+  // Fixes the resubmission dead-end: a pending/rejected owner or delivery
+  // account otherwise has no persistent way back to the KYC form once
+  // they've navigated away from the one-time AccountStatusNotice screen.
+  if (APPROVAL_GATED_ROLES.has(role) && approvalStatus && approvalStatus !== "approved") {
+    return [...base, { label: "Verification", to: "/onboarding/kyc" }];
+  }
+
+  return base;
+}
+
 export default function Shell({ children, title, subtitle, actions }) {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const activeCity = useUiStore((state) => state.activeCity);
   const role = profile?.role || "customer";
-  const navItems = NAV_BY_ROLE[role] || NAV_BY_ROLE.customer;
+  const navItems = buildNavItems(role, profile?.approval_status);
 
   async function handleSignOut() {
     await signOut();

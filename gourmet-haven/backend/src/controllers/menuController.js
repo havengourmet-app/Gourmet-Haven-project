@@ -51,6 +51,13 @@ export async function listMenuItems(req, res) {
     });
   }
 
+  // Fixes the remaining half of C2: now that this route requires auth +
+  // the owner role, also confirm the requester actually owns the restaurant
+  // they're asking about. Without this, any owner could pass any other
+  // owner's restaurantId and still see that restaurant's full menu —
+  // including unavailable items, which is exactly what was leaking before.
+  await assertOwnerOwnsRestaurant(req.profile?.id || req.user.id, restaurantId);
+
   const { data, error } = await supabaseAdmin
     .from("menu_items")
     .select("*")

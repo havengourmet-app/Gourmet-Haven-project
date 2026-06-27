@@ -31,6 +31,7 @@ export default function OrderTrackingPage() {
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [showCancelPaidConfirm, setShowCancelPaidConfirm] = useState(false);
 
   async function checkAndMaybeShowReview(currentOrder) {
     if (!isCustomer) return;
@@ -81,7 +82,12 @@ export default function OrderTrackingPage() {
       const nextStatus = payload.new.status;
       setOrder((curr) =>
         curr
-          ? { ...curr, status: nextStatus || curr.status, updated_at: payload.new.updated_at || curr.updated_at }
+          ? {
+              ...curr,
+              status: nextStatus || curr.status,
+              refund_status: payload.new.refund_status || curr.refund_status,
+              updated_at: payload.new.updated_at || curr.updated_at
+            }
           : curr
       );
       if (nextStatus === "delivered" && isCustomer && !alreadyReviewed && !reviewSubmitted) {
@@ -96,20 +102,35 @@ export default function OrderTrackingPage() {
     }
   });
 
+  function handleCancelClick() {
+    if (order?.payment_status === "paid") {
+      setShowCancelPaidConfirm(true);
+      return;
+    }
+    void handleCancelOrder();
+  }
+
   async function handleCancelOrder() {
     if (!order?.id || order.status !== "pending") return;
     setActionError("");
     setIsCancelling(true);
+    setShowCancelPaidConfirm(false);
 
     try {
       const updated = await updateOrderStatus(order.id, { status: "cancelled" });
-      setOrder((current) => (current ? { ...current, status: updated.status || "cancelled" } : current));
+      setOrder((current) =>
+        current
+          ? { ...current, status: updated.status || "cancelled", refund_status: updated.refund_status || current.refund_status }
+          : current
+      );
     } catch (err) {
       setActionError(err.message || "Unable to cancel this order.");
     } finally {
       setIsCancelling(false);
     }
   }
+
+  const showRefundNotice = order?.status === "cancelled" && order?.refund_status === "refund_required";
 
   return (
     <Shell title="Track your order" subtitle="Follow the live journey from confirmation to delivery.">
@@ -145,18 +166,29 @@ export default function OrderTrackingPage() {
               <div className="mt-5">
                 <button
                   type="button"
-                  onClick={handleCancelOrder}
+                  onClick={handleCancelClick}
                   disabled={isCancelling}
                   className="btn-danger"
                 >
                   {isCancelling ? "Cancelling..." : "Cancel order"}
                 </button>
+                {order.payment_status === "paid" && (
+                  <p className="mt-2 text-xs" style={{ color: "var(--ink-muted)" }}>
+                    This order was already paid online. Cancelling will flag it for a refund — refunds are processed manually for now.
+                  </p>
+                )}
               </div>
             )}
 
             {actionError && (
               <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b" }}>
                 {actionError}
+              </div>
+            )}
+
+            {showRefundNotice && (
+              <div className="mt-5 rounded-xl px-4 py-3 text-sm" style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e" }}>
+                This order was cancelled after payment. A refund is owed and has been flagged for manual processing — you don't need to do anything further.
               </div>
             )}
 
@@ -239,6 +271,27 @@ export default function OrderTrackingPage() {
           onClose={() => setShowRatingModal(false)}
           onSubmitted={() => { setShowRatingModal(false); setReviewSubmitted(true); }}
         />
+      )}
+
+      {showCancelPaidConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="card w-full max-w-sm p-6">
+            <p className="text-base font-semibold" style={{ color: "var(--ink)" }}>
+              Cancel this paid order?
+            </p>
+            <p className="mt-2 text-sm leading-6" style={{ color: "var(--ink-secondary)" }}>
+              You've already paid for this order online. Cancelling will flag it for a refund, which is currently processed manually and may take a little time. Continue?
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={handleCancelOrder} disabled={isCancelling} className="btn-danger">
+                {isCancelling ? "Cancelling..." : "Yes, cancel and request refund"}
+              </button>
+              <button type="button" onClick={() => setShowCancelPaidConfirm(false)} className="btn-secondary">
+                Keep order
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Shell>
   );

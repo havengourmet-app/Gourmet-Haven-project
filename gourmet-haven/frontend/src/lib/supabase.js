@@ -37,7 +37,13 @@ export const isSupabaseConfigured = !supabaseConfigError;
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        autoRefreshToken: false,
+        // Fixes C4: this was previously false while persistSession stayed
+        // true, meaning a session loaded from localStorage on page reload
+        // would never refresh its JWT — every request started failing with
+        // a 401 "Invalid or expired token" once the token's ~1hr lifetime
+        // passed, with no recovery path. Supabase's client handles the
+        // actual refresh timer/logic internally once this is true.
+        autoRefreshToken: true,
         detectSessionInUrl: true,
         persistSession: true,
         storageKey: "quickdyne-auth"

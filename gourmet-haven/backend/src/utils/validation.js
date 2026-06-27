@@ -79,3 +79,16 @@ export function optionalInteger(value, fieldName, options = {}) {
 
   return parsed;
 }
+
+// Validates a value against a fixed structural pattern (e.g. Aadhaar's 12
+// digits, PAN's 5-letter/4-digit/1-letter format) — closes the gap where
+// requireText alone only checked length, not actual shape.
+export function requirePattern(value, fieldName, pattern, hint) {
+  const trimmed = requireText(value, fieldName, { maxLength: 64 });
+
+  if (!pattern.test(trimmed)) {
+    throw createValidationError(`${fieldName} ${hint || "is not in a valid format"}.`);
+  }
+
+  return trimmed;
+}

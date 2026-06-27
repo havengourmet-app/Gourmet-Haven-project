@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Shell from "../components/common/Shell";
 import RoleBadge from "../components/common/RoleBadge";
 import { ImageUploader } from "../components/owner/OwnerMenuManager";
@@ -366,7 +367,7 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
         </div>
       </div>
 
-      {/* Role info */}
+{/* Role info */}
       <div className="card-surface p-5">
         <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>Account role</p>
         <div className="mt-3 flex items-center gap-3">
@@ -396,6 +397,16 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
               : "You order food through this platform."}
           </p>
         </div>
+
+        {/* Fixes the resubmission dead-end: gives pending/rejected accounts a
+            persistent path back to the KYC form from Profile too, not just
+            the one-time blocking screen. */}
+        {(profile?.role === "owner" || profile?.role === "delivery") && profile?.approval_status !== "approved" && (
+          <Link to="/onboarding/kyc" className="btn-secondary mt-3 inline-flex text-sm">
+            {profile?.approval_status === "rejected" ? "Resubmit your KYC details" : "View / update your KYC details"}
+          </Link>
+        )}
+
         <p className="mt-3 text-xs" style={{ color: "var(--ink-muted)" }}>
           Account ID: {profile?.id || user?.id || "—"}
         </p>

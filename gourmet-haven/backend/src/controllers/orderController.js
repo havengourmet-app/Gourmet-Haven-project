@@ -44,6 +44,8 @@ const ORDER_SELECT = `
   payment_provider,
   razorpay_order_id,
   razorpay_payment_id,
+  refund_status,
+  refund_notes,
   notes,
   city,
   created_at,
@@ -178,7 +180,7 @@ async function assertOwnerCanManageOrder(profileId, restaurantId) {
 async function fetchOrderForUpdate(orderId) {
   const { data, error } = await supabaseAdmin
     .from("orders")
-    .select("id, status, restaurant_id, assigned_delivery_id")
+    .select("id, status, restaurant_id, assigned_delivery_id, payment_status")
     .eq("id", orderId)
     .single();
 
@@ -953,6 +955,17 @@ export async function updateOrderStatus(req, res) {
       success: false,
       message: "No valid order update was supplied."
     });
+  }
+
+  // Fixes C3: if a Razorpay-paid order is being cancelled (by any role —
+  // customer, owner, or a future admin override), flag that a refund is
+  // owed instead of silently doing nothing. This does not call Razorpay's
+  // refund API yet; it makes the obligation visible and queryable so it
+  // can't be quietly forgotten, and gives a clean column to wire the real
+  // refund call into later.
+  if (patch.status === "cancelled" && existingOrder.payment_status === "paid") {
+    patch.refund_status = "refund_required";
+    patch.refund_notes = `Order cancelled by ${role} on ${new Date().toISOString()}; payment was already captured via Razorpay and has not yet been refunded.`;
   }
 
   const { data, error } = await supabaseAdmin

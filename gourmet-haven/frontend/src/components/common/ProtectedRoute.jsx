@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { fetchMyKycSubmission } from "../../services/kycService";
 
@@ -18,10 +18,18 @@ function AccountStatusNotice({ status }) {
         </h1>
         <p className="mt-3 text-sm leading-6" style={{ color: "var(--ink-secondary)" }}>
           {isRejected
-            ? "Your application for this account type wasn't approved. If you think this is a mistake, please contact support."
+            ? "Your application for this account type wasn't approved. You can review and resubmit your details below, or contact support if you think this is a mistake."
             : "Thanks for submitting your details! Your account is waiting for admin review before you can access this dashboard. This usually doesn't take long — check back soon."}
         </p>
-        <button type="button" onClick={signOut} className="btn-secondary mt-6">
+
+        {/* Fixes the resubmission dead-end: this used to be the only screen a
+            rejected/pending owner or delivery account could see, with no way
+            back to the KYC form short of typing the URL by hand. */}
+        <Link to="/onboarding/kyc" className="btn-primary mt-6 inline-flex">
+          {isRejected ? "Resubmit your details" : "View / update your details"}
+        </Link>
+
+        <button type="button" onClick={signOut} className="btn-secondary mt-3 w-full">
           Sign out
         </button>
       </div>
