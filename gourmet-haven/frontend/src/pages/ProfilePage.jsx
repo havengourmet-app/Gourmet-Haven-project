@@ -403,7 +403,7 @@ function EditProfileTab({ user, profile, onProfileUpdated }) {
             the one-time blocking screen. */}
         {(profile?.role === "owner" || profile?.role === "delivery") && profile?.approval_status !== "approved" && (
           <Link to="/onboarding/kyc" className="btn-secondary mt-3 inline-flex text-sm">
-            {profile?.approval_status === "rejected" ? "Resubmit your KYC details" : "View / update your KYC details"}
+            {profile?.approval_status === "rejected" ? "Resubmit your KYC details" : "View / Update your KYC details"}
           </Link>
         )}
 
